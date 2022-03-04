@@ -2,6 +2,7 @@ from datetime import date
 import streamlit as st
 import pandas as pd
 import investpy as ipy
+import altair as alt
 
 #PARAMETERS
 start_date = '01/12/2021'
@@ -9,7 +10,7 @@ cut_off = '18/02/2022'
 date_now = date.today()
 date_now = date_now.strftime("%d/%m/%Y")
 img_link = "https://www.economist.com/sites/default/files/images/print-edition/20220305_FBM981.png"
-refugee_link = "https://img.rasset.ie/001b4bdb-614.jpg"
+refugee_link = "https://data2.unhcr.org/population/get/sublocation?widget_id=283559&sv_id=54&population_group=5459,5460&forcesublocation=0&fromDate=1900-01-01"
 print(date_now)
 
 bonds = ['Russia']
@@ -113,7 +114,16 @@ def get_data(bonds, fxs, commodities):
         df = df.append(get_commodity(commodity))
 
     return df
-    
+
+@st.cache
+def get_unhcr(link):
+    df = pd.read_json(link)
+    df = pd.json_normalize(df['data'])
+    df = df[['geomaster_name', 'individuals']]
+    df['individuals'] = pd.to_numeric(df['individuals'])
+    df.sort_values(by='individuals', ascending=False)
+    return df
+
 def get_key(df = pd.DataFrame(), key=str):
     df = df.loc[df['instrument'] == key]
     df = df[["Close"]]
@@ -128,6 +138,18 @@ def get_key(df = pd.DataFrame(), key=str):
 # DATA
 df = get_data(bonds, fxs, commodities)
 #df_bonds = get_key(df, "Russia 10Y")
+
+refugee_chart = alt.Chart(get_unhcr(refugee_link)).mark_bar().encode(
+    x=alt.X('geomaster_name', sort='-y', axis=alt.Axis(title='Country')),
+    y=alt.Y('individuals', axis=alt.Axis(title='Refugee count'))
+).properties(height=700, title = 'Ukrainian Refugees in Neighbor Countries')
+
+refugee_chart = refugee_chart.configure_title(
+    fontSize=20,
+    #font='Courier',
+    #anchor='start',
+    #color='gray'
+)
 
 # df_bonds_ru = get_bonds('Russia 10Y')[0]
 # df_fx_ru = get_fx('EUR/RUB')[0]
@@ -150,8 +172,9 @@ st.write(intro)
 st.header("The immediate fallout; waht we can (try to) measure so far")
 
 st.write(fallout1)
+st.altair_chart(refugee_chart, use_container_width=True)
 st.line_chart(get_key(df, "EUR/UAH")['data'])
-st.image(refugee_link)
+
 
 st.write(fallout2)
 st.line_chart(get_key(df, "Russia 10Y vs Germany 10Y")['data'])
