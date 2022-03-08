@@ -1,8 +1,10 @@
 from datetime import date
+from turtle import width
 import streamlit as st
 import pandas as pd
 import investpy as ipy
 import altair as alt
+import plotly.express as px
 import streamlit.components.v1 as components
 
 
@@ -130,14 +132,17 @@ def get_key(df = pd.DataFrame(), key=str):
     df = df.loc[df['instrument'] == key]
     df = df[["Close"]]
     df = df.rename(columns={"Close": key})
+    min = df[key].min()
+    max = df[key].max()
+    sd = df[key].std()
     pre_crisis = df[key][cut_off]
     last = df[key][len(df)-1]
     lvl_delta = round(last - pre_crisis, 2)
     pct_delta = "{:.0%}".format(round(lvl_delta/pre_crisis, 2))
-    return_dict = {'data': df, 'last': last, 'lvl_delta': lvl_delta, 'pct_delta': pct_delta}
+    return_dict = {'data': df, 'last': last, 'lvl_delta': lvl_delta, 'pct_delta': pct_delta, 'min': min, 'max': max, 'sd': sd}
     return return_dict
 
-# DATA
+# DATA AND CHARTS
 df = get_data(bonds, fxs, commodities)
 #df_bonds = get_key(df, "Russia 10Y")
 
@@ -153,14 +158,84 @@ refugee_chart = refugee_chart.configure_title(
     #color='gray'
 )
 
-# df_bonds_ru = get_bonds('Russia 10Y')[0]
-# df_fx_ru = get_fx('EUR/RUB')[0]
+fig_fx_uaheur = px.area(
+    get_key(df, "EUR/UAH")['data'],
+    y="EUR/UAH", 
+    title = "EUR/UAH Exchange Rate<br><sup>Source: Investing.com</sup>",
+    range_y=[get_key(df, "EUR/UAH")['min']-get_key(df, "EUR/UAH")['sd'],get_key(df, "EUR/UAH")['max']+get_key(df, "EUR/UAH")['sd']])
 
-# bonds_drop = get_bonds('Russia 10Y')[1]
-# fx_drop = get_fx('EUR/RUB')[1]
+fig_fx_rubeur = px.area(
+    get_key(df, "EUR/RUB")['data'],
+    y="EUR/RUB", 
+    title = "EUR/RUB Exchange Rate<br><sup>Source: Investing.com</sup>",
+    range_y=[get_key(df, "EUR/RUB")['min']-get_key(df, "EUR/RUB")['sd'],get_key(df, "EUR/RUB")['max']+get_key(df, "EUR/RUB")['sd']],
+    width = 500)
 
-# bonds_decline = get_bonds('Russia 10Y')[2]
-# fx_decline = get_fx('EUR/RUB')[2]
+fig_fx_hufusd = px.area(
+    get_key(df, "USD/HUF")['data'],
+    y="USD/HUF", 
+    title = "USD/HUF Exchange Rate<br><sup>Source: Investing.com</sup>",
+    range_y=[get_key(df, "USD/HUF")['min']-get_key(df, "USD/HUF")['sd'],get_key(df, "USD/HUF")['max']+get_key(df, "USD/HUF")['sd']],
+    width = 350,
+    height = 300)
+
+fig_fx_plnusd = px.area(
+    get_key(df, "USD/PLN")['data'],
+    y="USD/PLN", 
+    title = "USD/PLN Exchange Rate<br><sup>Source: Investing.com</sup>",
+    range_y=[get_key(df, "USD/PLN")['min']-get_key(df, "USD/PLN")['sd'],get_key(df, "USD/PLN")['max']+get_key(df, "USD/PLN")['sd']],
+    width = 350,
+    height = 300)
+
+fig_fx_czkusd = px.area(
+    get_key(df, "USD/CZK")['data'],
+    y="USD/CZK", 
+    title = "USD/CZK Exchange Rate<br><sup>Source: Investing.com</sup>",
+    range_y=[get_key(df, "USD/CZK")['min']-get_key(df, "USD/CZK")['sd'],get_key(df, "USD/CZK")['max']+get_key(df, "USD/CZK")['sd']],
+    width = 350,
+    height = 300)
+
+fig_bond_ru10de10 = px.area(
+    get_key(df, "Russia 10Y vs Germany 10Y")['data'],
+    y="Russia 10Y vs Germany 10Y", 
+    title = "Spread: Yield to Maturity of Russia 10Y vs Germany 10Y Bonds<br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_oil = px.area(
+    get_key(df, "Brent Oil")['data'],
+    y="Brent Oil", 
+    title = "Brent Oil Price<br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_gas = px.area(
+    get_key(df, "Natural Gas")['data'],
+    y="Natural Gas", 
+    title = "Natural Gas Price<br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_gold = px.area(
+    get_key(df, "Gold")['data'],
+    y="Gold", 
+    title = "Gold Price<br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_copper = px.area(
+    get_key(df, "Copper")['data'],
+    y="Copper", 
+    title = "Copper Price<br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_wheat = px.area(
+    get_key(df, "London Wheat")['data'],
+    y="London Wheat", 
+    title = "Wheat Price (London) <br><sup>Source: Investing.com</sup>",
+    width = 500)
+
+fig_comm_sugar = px.area(
+    get_key(df, "London Sugar")['data'],
+    y="London Sugar", 
+    title = "Sugar Price (London) <br><sup>Source: Investing.com</sup>",
+    width = 500)
 
 #APP
 st.title('Security crisis in Europe')
@@ -171,15 +246,19 @@ st.markdown("---")
 
 st.write(intro)
 
-st.header("The immediate fallout; waht we can (try to) measure so far")
+st.header("The immediate fallout; what we can (try to) measure so far")
 
 st.write(fallout1)
+#colua1, colua2 = st.columns(2)
 st.altair_chart(refugee_chart, use_container_width=True)
-st.line_chart(get_key(df, "EUR/UAH")['data'])
+#st.line_chart(get_key(df, "EUR/UAH")['data'])
+st.plotly_chart(fig_fx_uaheur, use_container_width=True)
 
 st.write(fallout2)
-st.line_chart(get_key(df, "Russia 10Y vs Germany 10Y")['data'])
-st.line_chart(get_key(df, "EUR/RUB")['data'])
+
+col_rufm1, col_rufm2 = st.columns([1,1])
+col_rufm1.plotly_chart(fig_fx_rubeur)
+col_rufm2.plotly_chart(fig_bond_ru10de10)
 
 components.iframe("https://datawrapper.dwcdn.net/MicOM/2/", height=800, scrolling=True)
 components.iframe("https://datawrapper.dwcdn.net/ZVnMA/4/", height=800, scrolling=True)
@@ -187,23 +266,28 @@ components.iframe("https://datawrapper.dwcdn.net/17yDJ/2/", height=800, scrollin
 components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrolling=True)
 
 st.write(fallout3)
-st.line_chart(get_key(df, "USD/HUF")['data'])
-st.line_chart(get_key(df, "USD/PLN")['data'])
-st.line_chart(get_key(df, "USD/CZK")['data'])
+
+col_ceefx1, col_ceefx2, col_ceefx3 = st.columns([1,1,1])
+col_ceefx1.plotly_chart(fig_fx_plnusd)
+col_ceefx2.plotly_chart(fig_fx_czkusd)
+col_ceefx3.plotly_chart(fig_fx_hufusd)
 
 st.header("Impact on the global markets")
 
 st.write(fallout4)
-st.line_chart(get_key(df, "Brent Oil")['data'])
-st.line_chart(get_key(df, "Natural Gas")['data'])
+col_comm11, col_comm12 = st.columns([1,1])
+col_comm11.plotly_chart(fig_comm_oil, width = 500)
+col_comm12.plotly_chart(fig_comm_gas, width = 500)
 
 st.write(fallout5)
-st.line_chart(get_key(df, "Gold")['data'])
-st.line_chart(get_key(df, "Copper")['data'])
+col_comm21, col_comm22 = st.columns(2)
+col_comm21.plotly_chart(fig_comm_gold)
+col_comm22.plotly_chart(fig_comm_copper)
 
 st.write(fallout6)
-st.line_chart(get_key(df, "London Wheat")['data'])
-st.line_chart(get_key(df, "London Sugar")['data'])
+col_comm31, col_comm32 = st.columns(2)
+col_comm31.plotly_chart(fig_comm_wheat)
+col_comm32.plotly_chart(fig_comm_sugar)
 
 st.header("Structural changes and Grand Politics")
 st.image(img_link, caption="Votes in favor of the UN Resolution condemning Russian invastion in Ukraine")
