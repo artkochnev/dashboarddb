@@ -3,6 +3,8 @@ import streamlit as st
 import pandas as pd
 import investpy as ipy
 import altair as alt
+import streamlit.components.v1 as components
+
 
 #PARAMETERS
 start_date = '01/12/2021'
@@ -175,13 +177,16 @@ st.write(fallout1)
 st.altair_chart(refugee_chart, use_container_width=True)
 st.line_chart(get_key(df, "EUR/UAH")['data'])
 
-
 st.write(fallout2)
 st.line_chart(get_key(df, "Russia 10Y vs Germany 10Y")['data'])
 st.line_chart(get_key(df, "EUR/RUB")['data'])
 
-st.write(fallout3)
+components.iframe("https://datawrapper.dwcdn.net/MicOM/2/")
+components.iframe("https://datawrapper.dwcdn.net/ZVnMA/4/")
+components.iframe("https://datawrapper.dwcdn.net/17yDJ/2/")
+components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/")
 
+st.write(fallout3)
 st.line_chart(get_key(df, "USD/HUF")['data'])
 st.line_chart(get_key(df, "USD/PLN")['data'])
 st.line_chart(get_key(df, "USD/CZK")['data'])
