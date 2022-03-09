@@ -168,14 +168,14 @@ fig_fx_rubeur = px.area(
     y="EUR/RUB", 
     title = "EUR/RUB Exchange Rate<br><sup>Source: Investing.com</sup>",
     range_y=[get_key(df, "EUR/RUB")['min']-get_key(df, "EUR/RUB")['sd'],get_key(df, "EUR/RUB")['max']+get_key(df, "EUR/RUB")['sd']],
-    width = 500)
+    width = 450)
 
 fig_fx_hufusd = px.area(
     get_key(df, "USD/HUF")['data'],
     y="USD/HUF", 
     title = "USD/HUF Exchange Rate<br><sup>Source: Investing.com</sup>",
     range_y=[get_key(df, "USD/HUF")['min']-get_key(df, "USD/HUF")['sd'],get_key(df, "USD/HUF")['max']+get_key(df, "USD/HUF")['sd']],
-    width = 350,
+    width = 300,
     height = 300)
 
 fig_fx_plnusd = px.area(
@@ -183,7 +183,7 @@ fig_fx_plnusd = px.area(
     y="USD/PLN", 
     title = "USD/PLN Exchange Rate<br><sup>Source: Investing.com</sup>",
     range_y=[get_key(df, "USD/PLN")['min']-get_key(df, "USD/PLN")['sd'],get_key(df, "USD/PLN")['max']+get_key(df, "USD/PLN")['sd']],
-    width = 350,
+    width = 300,
     height = 300)
 
 fig_fx_czkusd = px.area(
@@ -191,50 +191,57 @@ fig_fx_czkusd = px.area(
     y="USD/CZK", 
     title = "USD/CZK Exchange Rate<br><sup>Source: Investing.com</sup>",
     range_y=[get_key(df, "USD/CZK")['min']-get_key(df, "USD/CZK")['sd'],get_key(df, "USD/CZK")['max']+get_key(df, "USD/CZK")['sd']],
-    width = 350,
+    width = 300,
     height = 300)
 
 fig_bond_ru10de10 = px.area(
     get_key(df, "Russia 10Y vs Germany 10Y")['data'],
     y="Russia 10Y vs Germany 10Y", 
     title = "Spread: Yield to Maturity of Russia 10Y vs Germany 10Y Bonds<br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "Russia 10Y vs Germany 10Y")['min']-get_key(df, "Russia 10Y vs Germany 10Y")['sd'],get_key(df, "Russia 10Y vs Germany 10Y")['max']+get_key(df, "Russia 10Y vs Germany 10Y")['sd']],
+    width = 450)
 
 fig_comm_oil = px.area(
     get_key(df, "Brent Oil")['data'],
     y="Brent Oil", 
     title = "Brent Oil Price<br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "Brent Oil")['min']-get_key(df, "Brent Oil")['sd'],get_key(df, "Brent Oil")['max']+get_key(df, "Brent Oil")['sd']],
+    width = 450)
 
 fig_comm_gas = px.area(
     get_key(df, "Natural Gas")['data'],
     y="Natural Gas", 
     title = "Natural Gas Price<br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "Natural Gas")['min']-get_key(df, "Natural Gas")['sd'],get_key(df, "Natural Gas")['max']+get_key(df, "Natural Gas")['sd']],
+    width = 450)
 
 fig_comm_gold = px.area(
     get_key(df, "Gold")['data'],
     y="Gold", 
     title = "Gold Price<br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "Gold")['min']-get_key(df, "Gold")['sd'],get_key(df, "Gold")['max']+get_key(df, "Gold")['sd']],
+    width = 450)
 
 fig_comm_copper = px.area(
     get_key(df, "Copper")['data'],
     y="Copper", 
     title = "Copper Price<br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "Copper")['min']-get_key(df, "Copper")['sd'],get_key(df, "Copper")['max']+get_key(df, "Copper")['sd']],
+    width = 450)
 
 fig_comm_wheat = px.area(
     get_key(df, "London Wheat")['data'],
     y="London Wheat", 
     title = "Wheat Price (London) <br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "London Wheat")['min']-get_key(df, "London Wheat")['sd'],get_key(df, "London Wheat")['max']+get_key(df, "London Wheat")['sd']],
+    width = 450)
 
 fig_comm_sugar = px.area(
     get_key(df, "London Sugar")['data'],
     y="London Sugar", 
     title = "Sugar Price (London) <br><sup>Source: Investing.com</sup>",
-    width = 500)
+    range_y=[get_key(df, "London Sugar")['min']-get_key(df, "London Sugar")['sd'],get_key(df, "London Sugar")['max']+get_key(df, "London Sugar")['sd']],
+    width = 450)
 
 #APP
 st.title('Security crisis in Europe')
