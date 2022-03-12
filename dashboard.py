@@ -5,15 +5,17 @@ import investpy as ipy
 import altair as alt
 import plotly.express as px
 import streamlit.components.v1 as components
-
+import plotly.graph_objects as go
 
 #PARAMETERS
 start_date = '01/12/2021'
 cut_off = '18/02/2022'
 date_now = date.today()
 date_now = date_now.strftime("%d/%m/%Y")
-img_link = "https://www.economist.com/sites/default/files/images/print-edition/20220305_FBM981.png"
-refugee_link = "https://data2.unhcr.org/population/get/sublocation?widget_id=283559&sv_id=54&population_group=5459,5460&forcesublocation=0&fromDate=1900-01-01"
+link_img = "https://www.economist.com/sites/default/files/images/print-edition/20220305_FBM981.png"
+link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283559&sv_id=54&population_group=5459,5460&forcesublocation=0&fromDate=1900-01-01"
+#link_total_needs = "https://fts.unocha.org/download/281410/download"
+link_cluster_needs = "https://fts.unocha.org/download/281411/download"
 print(date_now)
 
 bonds = ['Russia']
@@ -29,12 +31,17 @@ summary = "Russia’s invasion of Ukraine has created a humanitarian crisis that
     integration, and possibly drive it into a closer and more subservient economic and financial relationship with China. The EU will \
     scramble to diversify away from energy reliance on Russia as quickly as possible, while also investing heavily in upgrading its military capabilities."
 
-intro = "Russia’s attack on Ukraine marked the start of warfare in Europe on a scale not seen since the Balkan wars of the 1990s. Many people have already died, and as Russia launches apparently increasingly indiscriminate shelling of major cities, the death toll is likely to rise dramatically. What was unimaginable a week ago is now happening. Reports from Ukraine show an already high level of human suffering.\
-        Projecting developments from here requires a level of military expertise that we do not possess at wiiw. Taking our cue from those who know better, we envisage two possible broad scenarios. The first is that Russia intensifies its attacks on Ukraine’s cities, causing a great deal of destruction of both human life and infrastructure, and ends up occupying a part, if not all, of the country, However, it is \
+intro1 = "Russia’s attack on Ukraine marked the start of warfare in Europe on a scale not seen since the Balkan wars of the 1990s. Many people have already died, and as Russia launches apparently increasingly indiscriminate shelling of major cities, the death toll is likely to rise dramatically. What was unimaginable a week ago is now happening. Reports from Ukraine show an already high level of human suffering.\
+        Projecting developments from here requires a level of military expertise that we do not possess at wiiw. Taking our cue from those who know better, we envisage two possible broad scenarios."
+        
+intro2 = "The first is that Russia intensifies its attacks on Ukraine’s cities, causing a great deal of destruction of both human life and infrastructure, and ends up occupying a part, if not all, of the country, However, it is \
         not likely that Russia has the resources for a long-term occupation of the country (that is not to say that it will not try for some time, at least in part of Ukraine, but it will likely have to deal with guerrilla resistance). Moscow will then be forced to the negotiating table and likely demand various written commitments from Ukraine to agree to withdraw. There are already suggestions for how Putin’s “off-ramp” \
-        could look, but to us these proposals still need some work. Hard sanctions are likely to remain in place for a long period. \
-        A second broad possible scenario is that, in reaction to sanctions pressure and a loss of their privileges in the West, Russian elites oust President Putin and his administration and end the war. Sanctions would be gradually removed, and economic and financial ties cautiously rebuilt. We do not know enough to put probabilities on these scenarios, but we judge the first as more likely than the second. \
+        could look, but to us these proposals still need some work. Hard sanctions are likely to remain in place for a long period." 
+
+intro3 = "A second broad possible scenario is that, in reaction to sanctions pressure and a loss of their privileges in the West, Russian elites oust President Putin and his administration and end the war. Sanctions would be gradually removed, and economic and financial ties cautiously rebuilt. We do not know enough to put probabilities on these scenarios, but we judge the first as more likely than the second. \
         At wiiw we are undertaking a quantitative analysis to try to understand the impact of the war on the economics of Ukraine, Russia and the rest of Europe. In advance of the publication of that paper, here we outline our mostly qualitative assessments of developments so far."
+
+
 
 fallout1 = "**Ukraine**: The impact on Ukraine’s economy and society is already dramatic and will become even more so. More than one million people have already fled, and the number of refugees may be several times that by the time the war ends. Evidence from recent conflicts suggest that the negative economic shock will be severe. As long as the war goes on, Ukraine will receive major financial (as well as military) support from much of the rest of the world. But the costs of reconstruction in Europe’s second biggest country will be enormous."
 fallout2 = "**Russia**: As a result of its invasion, Russia faces heavy sanctions from the outside world. Reserves held in many foreign countries have been frozen, Russia has been partly excluded from SWIFT, and it now cannot important many high-tech and consumer goods (leading to panic buying). The rouble has collapsed and inflation will sky-rocket. For ordinary Russians, there is likely to be a great deal more economic pain to follow. The Russian Central Bank has shown itself in the past to be a highly capable operator. It is facing its stiffest test yet. While it may be possible to maintain a semblance of macro-financial stability, this is likely to require extremely restrictive monetary policy (it has already more than doubled interest rates), that will further amplify the negative economic shock."
@@ -84,7 +91,7 @@ def get_bond(country, tenor = 10, benchmark = 'Germany'):
 
     df = df.append(df_country_bond_export)
     df = df.append(df_spread)
-    print(df)
+    #print(df)
     return df
 
 def get_fx(fx):
@@ -127,6 +134,20 @@ def get_unhcr(link):
     df.sort_values(by='individuals', ascending=False)
     return df
 
+@st.cache
+def get_fts_needs(link):
+    #df_total_needs = pd.read_excel(link_total, sheet_name="Export data", skiprows=2)
+    df_cluster_needs = pd.read_excel(link, sheet_name="Export data", skiprows=2)
+    df_cluster_needs = df_cluster_needs.sort_values(['Required (US$)'], ascending=False)
+    funded_needs = df_cluster_needs['Funded (US$)'].sum()
+    total_needs = df_cluster_needs['Required (US$)'].sum()
+    ratio_funded_total = funded_needs / total_needs
+    ratio_funded_total = "{:.0%}".format(ratio_funded_total)
+    funded_needs = round(funded_needs/10**9, 2)
+    total_needs = round(total_needs/10**9, 2)
+    output = {'df': df_cluster_needs, 'Funded': funded_needs, 'Total': total_needs, 'Requirements met': ratio_funded_total}
+    return output
+
 def get_key(df = pd.DataFrame(), key=str):
     df = df.loc[df['instrument'] == key]
     df = df[["Close"]]
@@ -145,7 +166,11 @@ def get_key(df = pd.DataFrame(), key=str):
 df = get_data(bonds, fxs, commodities)
 #df_bonds = get_key(df, "Russia 10Y")
 
-refugee_chart = alt.Chart(get_unhcr(refugee_link)).mark_bar().encode(
+df_unhcr = get_unhcr(link_refugee)
+total_refugees = df_unhcr['individuals'].sum()
+total_refugees = round(total_refugees/10**6, 2)
+
+refugee_chart = alt.Chart(df_unhcr).mark_bar().encode(
     x=alt.X('geomaster_name', sort='-y', axis=alt.Axis(title='Country')),
     y=alt.Y('individuals', axis=alt.Axis(title='Refugee count'))
 ).properties(height=700, title = 'Ukrainian Refugees in Neighbor Countries')
@@ -156,6 +181,36 @@ refugee_chart = refugee_chart.configure_title(
     #anchor='start',
     #color='gray'
 )
+
+# Dictionary contains info on metrics and df
+hum_needs = get_fts_needs(link_cluster_needs)
+
+fig_hum_needs = go.Figure(layout=go.Layout(
+        title=go.layout.Title(text="Required humanitarian assistance by clusters, $ mn<br><sup>Source: FTS UN OCHA</sup>")
+        )
+    )
+
+fig_hum_needs.add_trace(go.Bar(
+    y=hum_needs['df']['Cluster/Sector'],
+    x=hum_needs['df']['Required (US$)'],
+    name='Required (US$)',
+    orientation='h',
+    # marker=dict(
+    #     color='rgba(246, 78, 139, 0.6)',
+    #     line=dict(color='rgba(246, 78, 139, 1.0)', width=3)
+    # )
+))
+
+fig_hum_needs.add_trace(go.Bar(
+    y=hum_needs['df']['Cluster/Sector'],
+    x=hum_needs['df']['Funded (US$)'],
+    name='Funded (US$)',
+    orientation='h',
+    # marker=dict(
+    #     color='rgba(58, 71, 80, 0.6)',
+    #     line=dict(color='rgba(58, 71, 80, 1.0)', width=3)
+    # )
+))
 
 fig_fx_uaheur = px.area(
     get_key(df, "EUR/UAH")['data'],
@@ -248,16 +303,26 @@ st.title('Security crisis in Europe')
 # st.write("Increase in yields of Russian bonds since February 18th, 2022: " + str(bonds_drop*100) + " basis points. The yields jumped by " + str(bonds_decline) + " from the pre-war time.")
 st.write("*Executive Summary*")
 st.write(summary)
+st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
+st.write("*Source*: Financial Tracking Service UN OCHA")
+cmet0, cmet1, cmet2, cmet3 = st.columns(4)
+cmet0.metric("Refugees, mn people", total_refugees)
+cmet1.metric("Total needs, $ BN", hum_needs['Total'])
+cmet2.metric("Funded needs $ BN", hum_needs['Funded'])
+cmet3.metric("Requirements met", hum_needs['Requirements met'])
 st.markdown("---")
 
-st.write(intro)
+st.write(intro1)
+st.write(intro2)
+st.write(intro3)
 
 st.header("The immediate fallout; what we can (try to) measure so far")
 
 st.write(fallout1)
-#colua1, colua2 = st.columns(2)
+
+
 st.altair_chart(refugee_chart, use_container_width=True)
-#st.line_chart(get_key(df, "EUR/UAH")['data'])
+st.plotly_chart(fig_hum_needs)
 st.plotly_chart(fig_fx_uaheur, use_container_width=True)
 
 st.write(fallout2)
@@ -296,7 +361,7 @@ col_comm31.plotly_chart(fig_comm_wheat)
 col_comm32.plotly_chart(fig_comm_sugar)
 
 st.header("Structural changes and Grand Politics")
-st.image(img_link, caption="Votes in favor of the UN Resolution condemning Russian invastion in Ukraine")
+st.image(link_img, caption="Votes in favor of the UN Resolution condemning Russian invastion in Ukraine. Source: The Economist")
 st.write(fallout7)
 st.write(fallout8)
 st.write(fallout9)
@@ -305,6 +370,3 @@ st.write(fallout11)
 st.write(fallout12)
 # st.write("Russian currency lost " + str(fx_drop) + " against EUR since February 18th, 2022. This is " + str(fx_decline) + " devaluation compared to the pre-war value.")
 # st.line_chart(df_fx_ru)
-
-
-
