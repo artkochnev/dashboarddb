@@ -15,7 +15,7 @@ date_now = date_now.strftime("%d/%m/%Y")
 link_img = "https://www.economist.com/sites/default/files/images/print-edition/20220305_FBM981.png"
 link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283559&sv_id=54&population_group=5459,5460&forcesublocation=0&fromDate=1900-01-01"
 #link_total_needs = "https://fts.unocha.org/download/281410/download"
-link_cluster_needs = "https://fts.unocha.org/download/281411/download"
+link_cluster_needs = "https://data.humdata.org/dataset/3ade4119-fa7c-476b-94a9-f001c6c8e7ba/resource/ad246b9d-dcc2-44bf-9863-a57a745e6fcb/download/fts_requirements_funding_globalcluster_ukr.csv"
 print(date_now)
 
 bonds = ['Russia']
@@ -40,8 +40,6 @@ intro2 = "The first is that Russia intensifies its attacks on Ukraine’s cities
 
 intro3 = "A second broad possible scenario is that, in reaction to sanctions pressure and a loss of their privileges in the West, Russian elites oust President Putin and his administration and end the war. Sanctions would be gradually removed, and economic and financial ties cautiously rebuilt. We do not know enough to put probabilities on these scenarios, but we judge the first as more likely than the second. \
         At wiiw we are undertaking a quantitative analysis to try to understand the impact of the war on the economics of Ukraine, Russia and the rest of Europe. In advance of the publication of that paper, here we outline our mostly qualitative assessments of developments so far."
-
-
 
 fallout1 = "**Ukraine**: The impact on Ukraine’s economy and society is already dramatic and will become even more so. More than one million people have already fled, and the number of refugees may be several times that by the time the war ends. Evidence from recent conflicts suggest that the negative economic shock will be severe. As long as the war goes on, Ukraine will receive major financial (as well as military) support from much of the rest of the world. But the costs of reconstruction in Europe’s second biggest country will be enormous."
 fallout2 = "**Russia**: As a result of its invasion, Russia faces heavy sanctions from the outside world. Reserves held in many foreign countries have been frozen, Russia has been partly excluded from SWIFT, and it now cannot important many high-tech and consumer goods (leading to panic buying). The rouble has collapsed and inflation will sky-rocket. For ordinary Russians, there is likely to be a great deal more economic pain to follow. The Russian Central Bank has shown itself in the past to be a highly capable operator. It is facing its stiffest test yet. While it may be possible to maintain a semblance of macro-financial stability, this is likely to require extremely restrictive monetary policy (it has already more than doubled interest rates), that will further amplify the negative economic shock."
@@ -136,16 +134,20 @@ def get_unhcr(link):
 
 @st.cache
 def get_fts_needs(link):
-    #df_total_needs = pd.read_excel(link_total, sheet_name="Export data", skiprows=2)
-    df_cluster_needs = pd.read_excel(link, sheet_name="Export data", skiprows=2)
-    df_cluster_needs = df_cluster_needs.sort_values(['Required (US$)'], ascending=False)
-    funded_needs = df_cluster_needs['Funded (US$)'].sum()
-    total_needs = df_cluster_needs['Required (US$)'].sum()
+    df = pd.read_csv(link)
+    df = df.loc[(df['code'] == 'FUKR22') & (df['countryCode'] == 'UKR')]
+    df = df[(df['requirements'].isnull() == False) | ((df['requirements'].isnull() == True) & (df['cluster'].isin(['Not specified', 'Multiple clusters/sectors (shared)']) == True))]
+    df['requirements'] = pd.to_numeric(df['requirements'], errors='coerce')
+    df['funding'] = pd.to_numeric(df['funding'], errors='coerce')
+    #df = df.dropna(subset=['requirements'])
+    df = df.sort_values(['requirements'], ascending=False)
+    funded_needs = df['funding'].sum()
+    total_needs = df['requirements'].sum()
     ratio_funded_total = funded_needs / total_needs
     ratio_funded_total = "{:.0%}".format(ratio_funded_total)
     funded_needs = round(funded_needs/10**9, 2)
     total_needs = round(total_needs/10**9, 2)
-    output = {'df': df_cluster_needs, 'Funded': funded_needs, 'Total': total_needs, 'Requirements met': ratio_funded_total}
+    output = {'df': df, 'Funded': funded_needs, 'Total': total_needs, 'Requirements met': ratio_funded_total}
     return output
 
 def get_key(df = pd.DataFrame(), key=str):
@@ -186,15 +188,17 @@ refugee_chart = refugee_chart.configure_title(
 hum_needs = get_fts_needs(link_cluster_needs)
 
 fig_hum_needs = go.Figure(layout=go.Layout(
-        title=go.layout.Title(text="Required humanitarian assistance by clusters, $ mn<br><sup>Source: FTS UN OCHA</sup>")
+        title=go.layout.Title(text="Required humanitarian assistance by clusters, $ mn<br><sup>Source: FTS UN OCHA</sup>"),
+        height = 800
         )
     )
 
 fig_hum_needs.add_trace(go.Bar(
-    y=hum_needs['df']['Cluster/Sector'],
-    x=hum_needs['df']['Required (US$)'],
+    y=hum_needs['df']['cluster'],
+    x=hum_needs['df']['requirements'],
     name='Required (US$)',
     orientation='h',
+    text = round(hum_needs['df']['requirements']/10**6, 0)
     # marker=dict(
     #     color='rgba(246, 78, 139, 0.6)',
     #     line=dict(color='rgba(246, 78, 139, 1.0)', width=3)
@@ -202,15 +206,18 @@ fig_hum_needs.add_trace(go.Bar(
 ))
 
 fig_hum_needs.add_trace(go.Bar(
-    y=hum_needs['df']['Cluster/Sector'],
-    x=hum_needs['df']['Funded (US$)'],
+    y=hum_needs['df']['cluster'],
+    x=hum_needs['df']['funding'],
     name='Funded (US$)',
     orientation='h',
+    text = round(hum_needs['df']['funding']/10**6, 0)
     # marker=dict(
     #     color='rgba(58, 71, 80, 0.6)',
     #     line=dict(color='rgba(58, 71, 80, 1.0)', width=3)
     # )
 ))
+
+fig_hum_needs.update_traces(textangle=0, textposition="outside", cliponaxis=False)
 
 fig_fx_uaheur = px.area(
     get_key(df, "EUR/UAH")['data'],
