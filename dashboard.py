@@ -16,6 +16,8 @@ link_img = "https://www.economist.com/sites/default/files/images/print-edition/2
 link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283559&sv_id=54&population_group=5459,5460&forcesublocation=0&fromDate=1900-01-01"
 #link_total_needs = "https://fts.unocha.org/download/281410/download"
 link_cluster_needs = "https://data.humdata.org/dataset/3ade4119-fa7c-476b-94a9-f001c6c8e7ba/resource/ad246b9d-dcc2-44bf-9863-a57a745e6fcb/download/fts_requirements_funding_globalcluster_ukr.csv"
+link_casualties = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQIdedbZz0ehRC0b4fsWiP14R7MdtU1mpmwAkuXUPElSah2AWCURKGALFDuHjvyJUL8vzZAt3R1B5qg/pub?output=csv"
+
 print(date_now)
 
 bonds = ['Russia']
@@ -133,6 +135,27 @@ def get_unhcr(link):
     return df
 
 @st.cache
+def get_casualties(link):
+    df = pd.read_csv(link)
+    col_names = df.loc[df['Flash Appeal'] == "Total Population(Flash Appeal)"].values.flatten().tolist()
+    df = df.loc[df['Flash Appeal'] != "Total Population(Flash Appeal)"]
+    df.columns = col_names
+    num_columns = ['Civilian casualities(OHCHR) - Killed', 'Civilian casualities(OHCHR) - Injured', 'Refugees(UNHCR)']
+    for c in num_columns:
+        df[c] = pd.to_numeric(df[c])
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df[['Date', 'Civilian casualities(OHCHR) - Killed', 'Civilian casualities(OHCHR) - Injured', 'Refugees(UNHCR)']]
+    n = len(df)
+    last_killed = df['Civilian casualities(OHCHR) - Killed'][n]
+    last_injured = df['Civilian casualities(OHCHR) - Injured'][n]
+    last_refugees = df['Refugees(UNHCR)'][n]  
+    delta_killed = df['Civilian casualities(OHCHR) - Killed'][n] - df['Civilian casualities(OHCHR) - Killed'][n-1]
+    delta_injured = df['Civilian casualities(OHCHR) - Injured'][n] - df['Civilian casualities(OHCHR) - Injured'][n-1]
+    delta_refugees = round((df['Refugees(UNHCR)'][n] - df['Refugees(UNHCR)'][n-1])/10**6,1)
+    output = {'df': df, "Injured": int(last_injured), 'Killed': int(last_killed), 'Refugees': int(last_refugees), 'Delta injured': int(delta_injured), 'Delta killed': int(delta_killed), 'Delta refugees': delta_refugees}
+    return output
+
+@st.cache
 def get_fts_needs(link):
     df = pd.read_csv(link)
     df = df.loc[(df['code'] == 'FUKR22') & (df['countryCode'] == 'UKR')]
@@ -166,7 +189,7 @@ def get_key(df = pd.DataFrame(), key=str):
 
 # DATA AND CHARTS
 df = get_data(bonds, fxs, commodities)
-#df_bonds = get_key(df, "Russia 10Y")
+df_casualties = get_casualties(link_casualties)
 
 df_unhcr = get_unhcr(link_refugee)
 total_refugees = df_unhcr['individuals'].sum()
@@ -311,12 +334,15 @@ st.title('Security crisis in Europe')
 st.write("*Executive Summary*")
 st.write(summary)
 st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
-st.write("*Source*: Financial Tracking Service UN OCHA")
-cmet0, cmet1, cmet2, cmet3 = st.columns(4)
-cmet0.metric("Refugees, mn people", total_refugees)
-cmet1.metric("Total needs, $ BN", hum_needs['Total'])
-cmet2.metric("Funded needs $ BN", hum_needs['Funded'])
-cmet3.metric("Requirements met", hum_needs['Requirements met'])
+st.write("*Source*: Financial Tracking Service UNOCHA, Centre for Humanitarian Data")
+cmet11, cmet12, cmet13 = st.columns(3)
+cmet21, cmet22, cmet23 = st.columns(3)
+cmet11.metric("Refugees, mn people", total_refugees, df_casualties['Delta refugees'])
+cmet12.metric("Civilians, fatalities", df_casualties['Killed'], df_casualties['Delta killed'])
+cmet13.metric("Civilians, injuries", df_casualties['Injured'], df_casualties['Delta injured'])
+cmet21.metric("Total needs, $ BN", hum_needs['Total'])
+cmet22.metric("Funded needs $ BN", hum_needs['Funded'])
+cmet23.metric("Requirements met", hum_needs['Requirements met'])
 st.markdown("---")
 
 st.write(intro1)
