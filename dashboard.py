@@ -125,13 +125,14 @@ def get_data(bonds, fxs, commodities):
 
     return df
 
-@st.cache
+#@st.cache
 def get_unhcr(link):
     df = pd.read_json(link)
     df = pd.json_normalize(df['data'])
     df = df[['geomaster_name', 'individuals']]
     df['individuals'] = pd.to_numeric(df['individuals'])
     df.sort_values(by='individuals', ascending=False)
+    print(df)
     return df
 
 @st.cache
