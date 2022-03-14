@@ -2,10 +2,10 @@ from datetime import date
 import streamlit as st
 import pandas as pd
 import investpy as ipy
-import altair as alt
 import plotly.express as px
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
+import pydeck as pdk
 
 #PARAMETERS
 start_date = '01/12/2021'
@@ -17,6 +17,8 @@ link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283
 #link_total_needs = "https://fts.unocha.org/download/281410/download"
 link_cluster_needs = "https://data.humdata.org/dataset/3ade4119-fa7c-476b-94a9-f001c6c8e7ba/resource/ad246b9d-dcc2-44bf-9863-a57a745e6fcb/download/fts_requirements_funding_globalcluster_ukr.csv"
 link_casualties = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQIdedbZz0ehRC0b4fsWiP14R7MdtU1mpmwAkuXUPElSah2AWCURKGALFDuHjvyJUL8vzZAt3R1B5qg/pub?output=csv"
+link_idps = "https://data.humdata.org/visualization/ukraine-humanitarian-operations/data/idps.csv"
+token = 'pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ'
 
 print(date_now)
 
@@ -131,9 +133,22 @@ def get_unhcr(link):
     df = pd.json_normalize(df['data'])
     df = df[['geomaster_name', 'individuals']]
     df['individuals'] = pd.to_numeric(df['individuals'])
-    df.sort_values(by='individuals', ascending=False)
+    df = df.sort_values(by='individuals', ascending=True)
     print(df)
     return df
+
+def get_idps(link):
+    df = pd.read_csv(link)
+    idps = df['IDP estimation'].sum()
+    num_cols = ['X Longitude', 'Y Latitude', 'IDP estimation', 'Population']
+    for c in num_cols:
+        df[c] = pd.to_numeric(df[c])
+    df_regions = df.groupby(['admin1Name_eng']).sum()
+    df_regions = df_regions.sort_values(by='IDP estimation', ascending=True)
+    df = df[num_cols]
+    df.columns = ['long', 'lat', 'idp', 'population']
+    output = {'df': df, 'df regs': df_regions, 'idps': idps}
+    return output
 
 @st.cache
 def get_casualties(link):
@@ -193,20 +208,74 @@ df = get_data(bonds, fxs, commodities)
 df_casualties = get_casualties(link_casualties)
 
 df_unhcr = get_unhcr(link_refugee)
+print(df_unhcr)
 total_refugees = df_unhcr['individuals'].sum()
 total_refugees = round(total_refugees/10**6, 2)
 
-refugee_chart = alt.Chart(df_unhcr).mark_bar().encode(
-    x=alt.X('geomaster_name', sort='-y', axis=alt.Axis(title='Country')),
-    y=alt.Y('individuals', axis=alt.Axis(title='Refugee count'))
-).properties(height=700, title = 'Ukrainian Refugees in Neighbor Countries')
+fig_ref_bar = go.Figure(layout=go.Layout(
+        title=go.layout.Title(text="Distribution of Refugees<br><sup>Source: UNOCHA</sup>"),
+        width = 400
+        )
+    )
 
-refugee_chart = refugee_chart.configure_title(
-    fontSize=20,
-    #font='Courier',
-    #anchor='start',
-    #color='gray'
+fig_ref_bar.add_trace(go.Bar(
+    y=df_unhcr['geomaster_name'],
+    x=df_unhcr['individuals'],
+    name='Persons, k',
+    orientation='h',
+    text = round(df_unhcr['individuals']/10**3, 0)
+))
+
+fig_ref_bar.update_traces(textangle=0, textposition="outside", cliponaxis=False)
+
+# Map of IDPs
+df_idps = get_idps(link_idps)['df']
+fig_idp_map = pdk.Deck(
+    map_style='mapbox://styles/mapbox/light-v9',
+    initial_view_state=pdk.ViewState(
+        latitude=48.5,
+        longitude=28.5,
+        zoom=5,
+        pitch=0,
+    ),
+    mapbox_key=token,
+    layers=[
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=df_idps,
+            get_position=['long', 'lat'],
+            #get_weigth = 'idp',
+            get_radius='idp',
+            radius_min_pixels=1,
+            radius_max_pixels=20,
+            get_fill_color=[255, 140, 0],
+            get_line_color=[0, 0, 0],
+            opacity = 0.4,
+            stroked=True,
+            filled=True,
+            pickable=True
+        )
+    ]
 )
+
+df_idps_reg = get_idps(link_idps)['df regs']
+print(df_idps_reg)
+
+fig_idps_bar = go.Figure(layout=go.Layout(
+        title=go.layout.Title(text="Distribution of IDP<br><sup>Source: UNOCHA</sup>"),
+        width = 400
+        )
+    )
+
+fig_idps_bar.add_trace(go.Bar(
+    y=df_idps_reg.index,
+    x=df_idps_reg['IDP estimation'],
+    name='Persons, k',
+    orientation='h',
+    text = round(df_idps_reg['IDP estimation']/10**3, 0),
+))
+
+fig_idps_bar.update_traces(textangle=0, textposition="outside", cliponaxis=False)
 
 # Dictionary contains info on metrics and df
 hum_needs = get_fts_needs(link_cluster_needs)
@@ -243,6 +312,7 @@ fig_hum_needs.add_trace(go.Bar(
 
 fig_hum_needs.update_traces(textangle=0, textposition="outside", cliponaxis=False)
 
+# TS graphs
 fig_fx_uaheur = px.area(
     get_key(df, "EUR/UAH")['data'],
     y="EUR/UAH", 
@@ -354,10 +424,14 @@ st.header("The immediate fallout; what we can (try to) measure so far")
 
 st.write(fallout1)
 
-
-st.altair_chart(refugee_chart, use_container_width=True)
+cfig1, cfig2 = st.columns(2)
+cfig1.plotly_chart(fig_ref_bar)
+cfig2.plotly_chart(fig_idps_bar)
+st.markdown("**Spatial distribution of Internally-Displaced Persons**")
+st.markdown("*Source*: Centre for Humanitarian Data, UNOCHA")
+st.pydeck_chart(fig_idp_map)
 st.plotly_chart(fig_hum_needs)
-st.plotly_chart(fig_fx_uaheur, use_container_width=True)
+#st.plotly_chart(fig_fx_uaheur, use_container_width=True)
 
 st.write(fallout2)
 
