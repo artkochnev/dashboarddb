@@ -149,7 +149,6 @@ def get_cbr_forecasts(link):
 
     df.columns = new_col_names
     df = df.fillna(method='ffill')
-    print(df)
     return df
 
 #@st.cache
@@ -159,7 +158,6 @@ def get_unhcr(link):
     df = df[['geomaster_name', 'individuals']]
     df['individuals'] = pd.to_numeric(df['individuals'])
     df = df.sort_values(by='individuals', ascending=True)
-    print(df)
     return df
 
 def get_idps(link):
@@ -228,6 +226,7 @@ def get_key(df = pd.DataFrame(), key=str):
     return_dict = {'data': df, 'last': last, 'lvl_delta': lvl_delta, 'pct_delta': pct_delta, 'min': min, 'max': max, 'sd': sd}
     return return_dict
 
+@st.cache
 def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com', width = 0, height = 0):
     if width > 0 & height > 0:
         fig = px.area(
@@ -261,6 +260,7 @@ def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com
     return fig
 
 # Graphs for CBR forecasts
+@st.cache
 def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter = str, lbound_filter = str, median_filter = str, filter_var = 'Stat', width = 0, height = 0):
     df = df_data
 
@@ -274,10 +274,10 @@ def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter =
     elif width > 0 & height == 0:
         fig = go.Figure(layout=go.Layout(
             title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
-            width = width,
+            width = width
             )
         )
-    elif width == 0 & width > 0:
+    elif width == 0 & height > 0:
         fig = go.Figure(layout=go.Layout(
             title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
             height = height
@@ -343,7 +343,6 @@ df = get_data(bonds, fxs, commodities)
 df_casualties = get_casualties(link_casualties)
 
 df_unhcr = get_unhcr(link_refugee)
-print(df_unhcr)
 total_refugees = df_unhcr['individuals'].sum()
 total_refugees = round(total_refugees/10**6, 2)
 
@@ -394,7 +393,6 @@ fig_idp_map = pdk.Deck(
 )
 
 df_idps_reg = get_idps(link_idps)['df regs']
-print(df_idps_reg)
 
 fig_idps_bar = go.Figure(layout=go.Layout(
         title=go.layout.Title(text="Distribution of IDP<br><sup>Source: UNOCHA</sup>"),
@@ -510,10 +508,17 @@ components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrollin
 
 st.write(fallout3)
 
-col_ceefx1, col_ceefx2, col_ceefx3 = st.columns([1,1,1])
-col_ceefx1.plotly_chart(fig_investing_data(df, "USD/PLN", width = 300, height = 300))
-col_ceefx2.plotly_chart(fig_investing_data(df, "USD/CZK", width = 300, height = 300))
-col_ceefx3.plotly_chart(fig_investing_data(df, "USD/HUF", width = 300, height = 300))
+#col_ceefx1, col_ceefx2, col_ceefx3 = st.columns([1,1,1])
+
+option = st.selectbox(
+     'Choose a currency pair',
+     ('USD/PLN', 'USD/CZK', 'USD/HUF'))
+print(option)
+#st.write('You selected:', option)
+st.plotly_chart(fig_investing_data(df, option))
+# col_ceefx1.plotly_chart(fig_investing_data(df, "USD/PLN", height = 200))
+# col_ceefx2.plotly_chart(fig_investing_data(df, "USD/CZK", height = 200))
+# col_ceefx3.plotly_chart(fig_investing_data(df, "USD/HUF", height = 200))
 
 st.header("Impact on the global markets")
 
