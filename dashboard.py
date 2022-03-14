@@ -6,6 +6,8 @@ import plotly.express as px
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
 import pydeck as pdk
+import requests
+import re
 
 #PARAMETERS
 start_date = '01/12/2021'
@@ -18,6 +20,7 @@ link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283
 link_cluster_needs = "https://data.humdata.org/dataset/3ade4119-fa7c-476b-94a9-f001c6c8e7ba/resource/ad246b9d-dcc2-44bf-9863-a57a745e6fcb/download/fts_requirements_funding_globalcluster_ukr.csv"
 link_casualties = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQIdedbZz0ehRC0b4fsWiP14R7MdtU1mpmwAkuXUPElSah2AWCURKGALFDuHjvyJUL8vzZAt3R1B5qg/pub?output=csv"
 link_idps = "https://data.humdata.org/visualization/ukraine-humanitarian-operations/data/idps.csv"
+link_cbr_forecasts = "http://www.cbr.ru/Collection/Collection/File/40867/full_032022.xlsx"
 token = 'pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ'
 
 print(date_now)
@@ -127,6 +130,28 @@ def get_data(bonds, fxs, commodities):
 
     return df
 
+@st.cache
+def get_cbr_forecasts(link):
+    header = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
+    "X-Requested-With": "XMLHttpRequest"
+    }
+    r = requests.get(link, headers=header)
+    df = pd.read_excel(r.content, skiprows=4, usecols='C:J')
+    col_names = df.columns
+    new_col_names = ['Stat', 'Year']
+    for name in col_names:
+        check = bool(re.search("Unnamed", name))
+        if check != True:
+            new_name = name.replace("\n", " ")
+            new_name = re.sub('\s+',' ', new_name)
+            new_col_names.append(new_name)
+
+    df.columns = new_col_names
+    df = df.fillna(method='ffill')
+    print(df)
+    return df
+
 #@st.cache
 def get_unhcr(link):
     df = pd.read_json(link)
@@ -202,6 +227,116 @@ def get_key(df = pd.DataFrame(), key=str):
     pct_delta = "{:.0%}".format(round(lvl_delta/pre_crisis, 2))
     return_dict = {'data': df, 'last': last, 'lvl_delta': lvl_delta, 'pct_delta': pct_delta, 'min': min, 'max': max, 'sd': sd}
     return return_dict
+
+def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com', width = 0, height = 0):
+    if width > 0 & height > 0:
+        fig = px.area(
+        get_key(df,key)[data_key],
+        y=key, 
+        title = f"{key}<br><sup>Source: {source}</sup>",
+        range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+        width = width,
+        height = height)
+    elif width > 0 & height == 0:
+        fig = px.area(
+        get_key(df,key)[data_key],
+        y=key, 
+        title = f"{key}<br><sup>Source: {source}</sup>",
+        range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+        width = width)
+    elif width == 0 & height > 0:
+        fig = px.area(
+        get_key(df,key)[data_key],
+        y=key, 
+        title = f"{key}<br><sup>Source: {source}</sup>",
+        range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+        height = height)
+    else:
+        fig = px.area(
+            get_key(df,key)[data_key],
+            y=key, 
+            title = f"{key}<br><sup>Source: {source}</sup>",
+            range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']]
+            )
+    return fig
+
+# Graphs for CBR forecasts
+def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter = str, lbound_filter = str, median_filter = str, filter_var = 'Stat', width = 0, height = 0):
+    df = df_data
+
+    if width > 0 & height > 0:
+        fig = go.Figure(layout=go.Layout(
+            title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
+            width = width,
+            height = height
+            )
+        )
+    elif width > 0 & height == 0:
+        fig = go.Figure(layout=go.Layout(
+            title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
+            width = width,
+            )
+        )
+    elif width == 0 & width > 0:
+        fig = go.Figure(layout=go.Layout(
+            title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
+            height = height
+            )
+        )
+    else:
+        fig = go.Figure(layout=go.Layout(
+            title=go.layout.Title(text=f"{plot_var}<br><sup>Source: Central Bank of Russia: Consensus Forecast</sup>"),
+            )
+        )    
+
+    # Create and style traces
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df[filter_var] == median_filter][date_var], 
+            y=df.loc[df[filter_var] == median_filter][plot_var], 
+            name='Median forecast',
+            line=dict(
+                color='rgb(0,176,246)', 
+                width=2
+            )
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df[filter_var] == lbound_filter][date_var], 
+            y=df.loc[df[filter_var] == lbound_filter][plot_var], 
+            name='10% percentile',
+            line=dict(
+                color='rgb(0,156,246)', 
+                width=2,
+                dash = 'dash'
+            )
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df[filter_var] == ubound_filter][date_var], 
+            y=df.loc[df[filter_var] == ubound_filter][plot_var], 
+            name='90% percentile',
+            line=dict(
+                color='rgb(0,196,246)', 
+                width=2,
+                dash = 'dash'
+            )
+        )
+    )
+    fig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=-0.5,
+        #xanchor="right",
+        #x=1
+    ))
+
+    fig.update_traces(mode='lines')
+    return fig
 
 # DATA AND CHARTS
 df = get_data(bonds, fxs, commodities)
@@ -312,92 +447,12 @@ fig_hum_needs.add_trace(go.Bar(
 
 fig_hum_needs.update_traces(textangle=0, textposition="outside", cliponaxis=False)
 
-# TS graphs
-fig_fx_uaheur = px.area(
-    get_key(df, "EUR/UAH")['data'],
-    y="EUR/UAH", 
-    title = "EUR/UAH Exchange Rate<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "EUR/UAH")['min']-get_key(df, "EUR/UAH")['sd'],get_key(df, "EUR/UAH")['max']+get_key(df, "EUR/UAH")['sd']])
-
-fig_fx_rubeur = px.area(
-    get_key(df, "EUR/RUB")['data'],
-    y="EUR/RUB", 
-    title = "EUR/RUB Exchange Rate<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "EUR/RUB")['min']-get_key(df, "EUR/RUB")['sd'],get_key(df, "EUR/RUB")['max']+get_key(df, "EUR/RUB")['sd']],
-    width = 450)
-
-fig_fx_hufusd = px.area(
-    get_key(df, "USD/HUF")['data'],
-    y="USD/HUF", 
-    title = "USD/HUF Exchange Rate<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "USD/HUF")['min']-get_key(df, "USD/HUF")['sd'],get_key(df, "USD/HUF")['max']+get_key(df, "USD/HUF")['sd']],
-    width = 300,
-    height = 300)
-
-fig_fx_plnusd = px.area(
-    get_key(df, "USD/PLN")['data'],
-    y="USD/PLN", 
-    title = "USD/PLN Exchange Rate<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "USD/PLN")['min']-get_key(df, "USD/PLN")['sd'],get_key(df, "USD/PLN")['max']+get_key(df, "USD/PLN")['sd']],
-    width = 300,
-    height = 300)
-
-fig_fx_czkusd = px.area(
-    get_key(df, "USD/CZK")['data'],
-    y="USD/CZK", 
-    title = "USD/CZK Exchange Rate<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "USD/CZK")['min']-get_key(df, "USD/CZK")['sd'],get_key(df, "USD/CZK")['max']+get_key(df, "USD/CZK")['sd']],
-    width = 300,
-    height = 300)
-
-fig_bond_ru10de10 = px.area(
-    get_key(df, "Russia 10Y vs Germany 10Y")['data'],
-    y="Russia 10Y vs Germany 10Y", 
-    title = "Spread: Yield to Maturity of Russia 10Y vs Germany 10Y Bonds<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "Russia 10Y vs Germany 10Y")['min']-get_key(df, "Russia 10Y vs Germany 10Y")['sd'],get_key(df, "Russia 10Y vs Germany 10Y")['max']+get_key(df, "Russia 10Y vs Germany 10Y")['sd']],
-    width = 450)
-
-fig_comm_oil = px.area(
-    get_key(df, "Brent Oil")['data'],
-    y="Brent Oil", 
-    title = "Brent Oil Price<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "Brent Oil")['min']-get_key(df, "Brent Oil")['sd'],get_key(df, "Brent Oil")['max']+get_key(df, "Brent Oil")['sd']],
-    width = 450)
-
-fig_comm_gas = px.area(
-    get_key(df, "Natural Gas")['data'],
-    y="Natural Gas", 
-    title = "Natural Gas Price<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "Natural Gas")['min']-get_key(df, "Natural Gas")['sd'],get_key(df, "Natural Gas")['max']+get_key(df, "Natural Gas")['sd']],
-    width = 450)
-
-fig_comm_gold = px.area(
-    get_key(df, "Gold")['data'],
-    y="Gold", 
-    title = "Gold Price<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "Gold")['min']-get_key(df, "Gold")['sd'],get_key(df, "Gold")['max']+get_key(df, "Gold")['sd']],
-    width = 450)
-
-fig_comm_copper = px.area(
-    get_key(df, "Copper")['data'],
-    y="Copper", 
-    title = "Copper Price<br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "Copper")['min']-get_key(df, "Copper")['sd'],get_key(df, "Copper")['max']+get_key(df, "Copper")['sd']],
-    width = 450)
-
-fig_comm_wheat = px.area(
-    get_key(df, "London Wheat")['data'],
-    y="London Wheat", 
-    title = "Wheat Price (London) <br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "London Wheat")['min']-get_key(df, "London Wheat")['sd'],get_key(df, "London Wheat")['max']+get_key(df, "London Wheat")['sd']],
-    width = 450)
-
-fig_comm_sugar = px.area(
-    get_key(df, "London Sugar")['data'],
-    y="London Sugar", 
-    title = "Sugar Price (London) <br><sup>Source: Investing.com</sup>",
-    range_y=[get_key(df, "London Sugar")['min']-get_key(df, "London Sugar")['sd'],get_key(df, "London Sugar")['max']+get_key(df, "London Sugar")['sd']],
-    width = 450)
+#CBR Forecasts
+df_cbr = get_cbr_forecasts(link_cbr_forecasts)
+fgdp = figure_cbr_forecast(df_cbr, 'Year', "GDP (%, YoY)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+ffx = figure_cbr_forecast(df_cbr, 'Year', "USD / RUB rate (RUB per USD, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+fcpi = figure_cbr_forecast(df_cbr, 'Year', "CPI (in% Dec to Dec of the previous year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+fkrt = figure_cbr_forecast(df_cbr, 'Year', "Key rate (% per annum, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
 
 #APP
 st.title('Security crisis in Europe')
@@ -436,8 +491,17 @@ st.plotly_chart(fig_hum_needs)
 st.write(fallout2)
 
 col_rufm1, col_rufm2 = st.columns([1,1])
-col_rufm1.plotly_chart(fig_fx_rubeur)
-col_rufm2.plotly_chart(fig_bond_ru10de10)
+col_rufm1.plotly_chart(fig_investing_data(df, "EUR/RUB", width = 400, height = 400))
+col_rufm2.plotly_chart(fig_investing_data(df, "Russia 10Y vs Germany 10Y", width = 400, height = 400))
+
+st.markdown("**Russian GDP Forecasts According to Professional Forecasters**")
+st.markdown("*Source*: Central Bank of Russia")
+cfig11, cfig12 = st.columns(2)
+cfig11.plotly_chart(fgdp)
+cfig12.plotly_chart(fcpi)
+cfig21, cfig22 = st.columns(2)
+cfig11.plotly_chart(ffx)
+cfig12.plotly_chart(fkrt)
 
 components.iframe("https://datawrapper.dwcdn.net/MicOM/2/", height=800, scrolling=True)
 components.iframe("https://datawrapper.dwcdn.net/ZVnMA/4/", height=800, scrolling=True)
@@ -447,26 +511,26 @@ components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrollin
 st.write(fallout3)
 
 col_ceefx1, col_ceefx2, col_ceefx3 = st.columns([1,1,1])
-col_ceefx1.plotly_chart(fig_fx_plnusd)
-col_ceefx2.plotly_chart(fig_fx_czkusd)
-col_ceefx3.plotly_chart(fig_fx_hufusd)
+col_ceefx1.plotly_chart(fig_investing_data(df, "USD/PLN", width = 300, height = 300))
+col_ceefx2.plotly_chart(fig_investing_data(df, "USD/CZK", width = 300, height = 300))
+col_ceefx3.plotly_chart(fig_investing_data(df, "USD/HUF", width = 300, height = 300))
 
 st.header("Impact on the global markets")
 
 st.write(fallout4)
 col_comm11, col_comm12 = st.columns([1,1])
-col_comm11.plotly_chart(fig_comm_oil, width = 500)
-col_comm12.plotly_chart(fig_comm_gas, width = 500)
+col_comm11.plotly_chart(fig_investing_data(df, "Brent Oil", width = 400, height = 400))
+col_comm12.plotly_chart(fig_investing_data(df, "Natural Gas", width = 400, height = 400))
 
 st.write(fallout5)
 col_comm21, col_comm22 = st.columns(2)
-col_comm21.plotly_chart(fig_comm_gold)
-col_comm22.plotly_chart(fig_comm_copper)
+col_comm21.plotly_chart(fig_investing_data(df, "Gold", width = 400, height = 400))
+col_comm22.plotly_chart(fig_investing_data(df, "Copper", width = 400, height = 400))
 
 st.write(fallout6)
 col_comm31, col_comm32 = st.columns(2)
-col_comm31.plotly_chart(fig_comm_wheat)
-col_comm32.plotly_chart(fig_comm_sugar)
+col_comm31.plotly_chart(fig_investing_data(df, "London Wheat", width = 400, height = 400))
+col_comm32.plotly_chart(fig_investing_data(df, "London Sugar", width = 400, height = 400))
 
 st.header("Structural changes and Grand Politics")
 st.image(link_img, caption="Votes in favor of the UN Resolution condemning Russian invastion in Ukraine. Source: The Economist")
