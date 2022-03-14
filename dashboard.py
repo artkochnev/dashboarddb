@@ -226,7 +226,6 @@ def get_key(df = pd.DataFrame(), key=str):
     return_dict = {'data': df, 'last': last, 'lvl_delta': lvl_delta, 'pct_delta': pct_delta, 'min': min, 'max': max, 'sd': sd}
     return return_dict
 
-@st.cache
 def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com', width = 0, height = 0):
     if width > 0 & height > 0:
         fig = px.area(
@@ -260,7 +259,6 @@ def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com
     return fig
 
 # Graphs for CBR forecasts
-@st.cache
 def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter = str, lbound_filter = str, median_filter = str, filter_var = 'Stat', width = 0, height = 0):
     df = df_data
 
