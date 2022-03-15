@@ -151,7 +151,7 @@ def get_cbr_forecasts(link):
     df = df.fillna(method='ffill')
     return df
 
-#@st.cache
+@st.cache
 def get_unhcr(link):
     df = pd.read_json(link)
     df = pd.json_normalize(df['data'])
@@ -160,6 +160,7 @@ def get_unhcr(link):
     df = df.sort_values(by='individuals', ascending=True)
     return df
 
+@st.cache
 def get_idps(link):
     df = pd.read_csv(link)
     idps = df['IDP estimation'].sum()
