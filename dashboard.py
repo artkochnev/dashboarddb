@@ -19,7 +19,8 @@ link_refugee = "https://data2.unhcr.org/population/get/sublocation?widget_id=283
 #link_total_needs = "https://fts.unocha.org/download/281410/download"
 link_cluster_needs = "https://data.humdata.org/dataset/3ade4119-fa7c-476b-94a9-f001c6c8e7ba/resource/ad246b9d-dcc2-44bf-9863-a57a745e6fcb/download/fts_requirements_funding_globalcluster_ukr.csv"
 link_casualties = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQIdedbZz0ehRC0b4fsWiP14R7MdtU1mpmwAkuXUPElSah2AWCURKGALFDuHjvyJUL8vzZAt3R1B5qg/pub?output=csv"
-link_idps = "https://data.humdata.org/visualization/ukraine-humanitarian-operations/data/idps.csv"
+link_idps = "https://data.humdata.org/dataset/0d36e8ad-d2e8-4646-babd-61a41f99159a/resource/af76a684-de9a-4e14-8880-e4373c3763b8/download/idp_estimation_08_03_2022-unhcr-protection-cluster.xlsx"
+link_idps_estimates = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFH9njhmY7yy9LBpRdlvbR6IZ3QdcV43zdC619FXgf7MSzb15ZwX4lJFIznvRqnvIAOTn1GRWZyjYz/pub?output=xlsx"
 link_cbr_forecasts = "http://www.cbr.ru/Collection/Collection/File/40867/full_032022.xlsx"
 token = 'pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ'
 
@@ -27,7 +28,7 @@ print(date_now)
 
 bonds = ['Russia']
 commodities = ['Gold', 'Brent Oil', 'Natural Gas', 'London Wheat', 'Nickel', 'Copper', 'London Sugar']
-fxs = ['EUR/RUB', 'EUR/UAH', 'EUR/USD', "USD/HUF", "USD/PLN", "USD/CZK"]
+fxs = ['EUR/RUB', 'EUR/UAH', 'EUR/USD', "USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"]
 
 #TEXT
 summary = "Russia’s invasion of Ukraine has created a humanitarian crisis that will unfortunately almost certainly intensify, \
@@ -134,7 +135,8 @@ def get_data(bonds, fxs, commodities):
 def get_cbr_forecasts(link):
     header = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
-    "X-Requested-With": "XMLHttpRequest"
+    "X-Requested-With": "XMLHttpRequest",
+    'referer': "http://www.cbr.ru/statistics/ddkp/"
     }
     r = requests.get(link, headers=header)
     df = pd.read_excel(r.content, skiprows=4, usecols='C:J')
@@ -161,17 +163,21 @@ def get_unhcr(link):
     return df
 
 @st.cache
-def get_idps(link):
-    df = pd.read_csv(link)
-    idps = df['IDP estimation'].sum()
+def get_idps(link_regdata, link_survey):
+    df_survey = pd.read_excel(link_survey, sheet_name="Current location of IDPs", skiprows=1, usecols="A:C")
+    df_survey = df_survey.dropna()
+    df_survey = df_survey.sort_values(by='# est. IDPs presence per macro-region', ascending=True)
+    idps = df_survey['# est. IDPs presence per macro-region'].sum()
+    df_regdata = pd.read_excel(link_regdata, sheet_name = "Dataset")
     num_cols = ['X Longitude', 'Y Latitude', 'IDP estimation', 'Population']
     for c in num_cols:
-        df[c] = pd.to_numeric(df[c])
-    df_regions = df.groupby(['admin1Name_eng']).sum()
+        df_regdata[c] = pd.to_numeric(df_regdata[c])
+    df_regions = df_regdata.groupby(['admin1Name_eng']).sum()
     df_regions = df_regions.sort_values(by='IDP estimation', ascending=True)
-    df = df[num_cols]
-    df.columns = ['long', 'lat', 'idp', 'population']
-    output = {'df': df, 'df regs': df_regions, 'idps': idps}
+    df_regions['IDP share'] = df_regions['IDP estimation'] / df_regions['IDP estimation'].sum()
+    df_regdata = df_regdata[num_cols]
+    df_regdata.columns = ['long', 'lat', 'idp', 'population']
+    output = {'df locs': df_regdata, 'df regs': df_regions, 'df survey': df_survey, 'idps': idps}
     return output
 
 @st.cache
@@ -346,7 +352,7 @@ total_refugees = df_unhcr['individuals'].sum()
 total_refugees = round(total_refugees/10**6, 2)
 
 fig_ref_bar = go.Figure(layout=go.Layout(
-        title=go.layout.Title(text="Distribution of Refugees<br><sup>Source: UNOCHA</sup>"),
+        title=go.layout.Title(text="Distribution of Refugees, mn<br><sup>Source: UNOCHA</sup>"),
         width = 400
         )
     )
@@ -356,13 +362,13 @@ fig_ref_bar.add_trace(go.Bar(
     x=df_unhcr['individuals'],
     name='Persons, k',
     orientation='h',
-    text = round(df_unhcr['individuals']/10**3, 0)
+    text = round(df_unhcr['individuals']/10**6, 2)
 ))
 
 fig_ref_bar.update_traces(textangle=0, textposition="outside", cliponaxis=False)
 
 # Map of IDPs
-df_idps = get_idps(link_idps)['df']
+df_idps = get_idps(link_idps, link_idps_estimates)['df locs']
 fig_idp_map = pdk.Deck(
     map_style='mapbox://styles/mapbox/light-v9',
     initial_view_state=pdk.ViewState(
@@ -391,20 +397,21 @@ fig_idp_map = pdk.Deck(
     ]
 )
 
-df_idps_reg = get_idps(link_idps)['df regs']
+df_idps_reg = get_idps(link_idps, link_idps_estimates)['df survey']
+idps_total = round(get_idps(link_idps, link_idps_estimates)['idps']/10**6,2)
 
 fig_idps_bar = go.Figure(layout=go.Layout(
-        title=go.layout.Title(text="Distribution of IDP<br><sup>Source: UNOCHA</sup>"),
+        title=go.layout.Title(text="Distribution of IDP, mn<br><sup>Source: UNOCHA</sup>"),
         width = 400
         )
     )
 
 fig_idps_bar.add_trace(go.Bar(
-    y=df_idps_reg.index,
-    x=df_idps_reg['IDP estimation'],
-    name='Persons, k',
+    y=df_idps_reg['Macro-region'],
+    x=df_idps_reg['# est. IDPs presence per macro-region'],
+    name='Persons, mn',
     orientation='h',
-    text = round(df_idps_reg['IDP estimation']/10**3, 0),
+    text = round(df_idps_reg['# est. IDPs presence per macro-region']/10**6, 2),
 ))
 
 fig_idps_bar.update_traces(textangle=0, textposition="outside", cliponaxis=False)
@@ -461,11 +468,12 @@ st.write("*Source*: Financial Tracking Service UNOCHA, Centre for Humanitarian D
 cmet11, cmet12, cmet13 = st.columns(3)
 cmet21, cmet22, cmet23 = st.columns(3)
 cmet11.metric("Refugees, mn people", total_refugees, df_casualties['Delta refugees'])
+cmet21.metric("IDPs, mn people", idps_total)
 cmet12.metric("Civilians, fatalities", df_casualties['Killed'], df_casualties['Delta killed'])
-cmet13.metric("Civilians, injuries", df_casualties['Injured'], df_casualties['Delta injured'])
-cmet21.metric("Total needs, $ BN", hum_needs['Total'])
-cmet22.metric("Funded needs $ BN", hum_needs['Funded'])
-cmet23.metric("Requirements met", hum_needs['Requirements met'])
+cmet22.metric("Civilians, injuries", df_casualties['Injured'], df_casualties['Delta injured'])
+cmet13.metric("Total needs, $ BN", hum_needs['Total'])
+cmet23.metric("Funded needs $ BN", hum_needs['Funded'])
+#cmet23.metric("Requirements met", hum_needs['Requirements met'])
 st.markdown("---")
 
 st.write(intro1)
@@ -511,7 +519,8 @@ st.write(fallout3)
 
 option = st.selectbox(
      'Choose a currency pair',
-     ('USD/PLN', 'USD/CZK', 'USD/HUF'))
+     ("USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"))
+     
 print(option)
 #st.write('You selected:', option)
 st.plotly_chart(fig_investing_data(df, option))
