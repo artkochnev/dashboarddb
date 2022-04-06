@@ -130,6 +130,8 @@ def main():
         for commodity in commodities:
             df = df.append(get_commodity(commodity))
 
+        print(df)
+
         return df
 
     @st.cache
@@ -284,6 +286,62 @@ def main():
                 title = f"{key}<br><sup>Source: {source}</sup>",
                 range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']]
                 )
+
+        fig = fig.add_vline(x="2022-02-24", line_width=1.5, line_dash="dash", line_color="red")
+        
+        return fig
+
+    def fig_investing_data_multi(df, keys = list, ref_date = '2021-12-01', source = 'Investing.com', width = 0, height = 0):
+        df_plot = df[df['instrument'].isin(keys)]
+        df_ref = df_plot.loc[df_plot.index == ref_date]
+        df_plot['Date'] = df_plot.index
+        df_plot = pd.merge(df_plot, df_ref,  how='inner', left_on='instrument', right_on = 'instrument')
+        df_plot['Close_x'] = df_plot['Close_x'] / df_plot['Close_y']
+        print(df_plot)
+        if width > 0 & height > 0:
+            fig = px.line(
+                df_plot,
+                x = 'Date',
+                y='Close_x',
+                color = 'instrument',
+                #range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+                width = width,
+                height = height
+                )
+        elif width > 0 & height == 0:
+            fig = px.line(
+                df_plot,
+                x = 'Date',
+                y='Close_x',
+                color = 'instrument',
+                title = f"{keys}<br><sup>Source: {source}</sup>",
+                #range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+                width = width)
+        elif width == 0 & height > 0:
+            fig = px.line(
+                df_plot,
+                x = 'Date',
+                y='Close_x',
+                color = 'instrument', 
+                title = f"{keys}<br><sup>Source: {source}</sup>",
+                #range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+                height = height)
+        else:
+            fig = px.line(
+                df_plot,
+                x = 'Date',
+                y='Close_x',
+                color = 'instrument',
+                title = f"{keys}<br><sup>Source: {source}</sup>",
+                #range_y=[get_key(df, key)['min']-get_key(df, key)['sd'],get_key(df, key)['max']+get_key(df, key)['sd']],
+                )
+
+        fig = fig.add_vline(x="2022-02-24", line_width=1.5, line_dash="dash", line_color="red")
+        #title = ", ".join(keys)
+        title = f"Change ofthe floating FX rates relative to Dec 1st, 2022 in Eastern Europe"
+        fig = fig.update_layout(title = f"{title}<br><sup>Source: {source}</sup>", 
+            yaxis_title='Value-to-Date to Value on December 1st')
+        
         return fig
 
     # Graphs for CBR forecasts
@@ -481,7 +539,6 @@ def main():
 
     #APP
     st.title('Security crisis in Europe')
-    # st.write("Increase in yields of Russian bonds since February 18th, 2022: " + str(bonds_drop*100) + " basis points. The yields jumped by " + str(bonds_decline) + " from the pre-war time.")
     st.write("*Executive Summary*")
     st.write(summary)
     st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
@@ -496,7 +553,6 @@ def main():
     cmet23.metric("Funded needs $ BN", hum_needs['Funded'])
     cmet14.metric("Education facilities damaged", df_casualties['Attacks Schools'], df_casualties['Delta attacks schools'])
     cmet24.metric("Healthcare facilities damaged", df_casualties['Attacks Healthcare'], df_casualties['Delta attacks healthcare'])
-    #cmet23.metric("Requirements met", hum_needs['Requirements met'])
     st.markdown("---")
 
     st.write(intro1)
@@ -514,7 +570,6 @@ def main():
     st.markdown("*Source*: Centre for Humanitarian Data, UNOCHA")
     st.pydeck_chart(fig_idp_map)
     st.plotly_chart(fig_hum_needs)
-    #st.plotly_chart(fig_fx_uaheur, use_container_width=True)
 
     st.write(fallout2)
 
@@ -547,6 +602,14 @@ def main():
     print(option)
     #st.write('You selected:', option)
     st.plotly_chart(fig_investing_data(df, option))
+
+    CURRENCIES = ["USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"]
+    options = st.multiselect(
+        'Select the currency pair for comparison',
+        CURRENCIES,
+        CURRENCIES[:2])
+
+    st.plotly_chart(fig_investing_data_multi(df, options))
     # col_ceefx1.plotly_chart(fig_investing_data(df, "USD/PLN", height = 200))
     # col_ceefx2.plotly_chart(fig_investing_data(df, "USD/CZK", height = 200))
     # col_ceefx3.plotly_chart(fig_investing_data(df, "USD/HUF", height = 200))
