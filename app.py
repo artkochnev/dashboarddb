@@ -61,7 +61,8 @@ def main():
         bench_bond = "Germany",
         market = "United Kingdom",
         start_date = START_DATE, 
-        to_date = DATE_NOW)
+        to_date = DATE_NOW,
+        link_local=LINK_LOCAL_INVESTING_DATA)
     logging.info("Investing data pulled")
 
     # FIGURES
