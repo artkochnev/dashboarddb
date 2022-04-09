@@ -124,8 +124,6 @@ def get_data(bonds = list,
     finally:
         return df
 
-    return df
-
 def get_key(df = pd.DataFrame(), key=str, start_date = date, to_date = date, bench_date = date):
     try:
         df = df.loc[df['instrument'] == key]
