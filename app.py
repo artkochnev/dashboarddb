@@ -32,6 +32,7 @@ def main():
     LINK_LOCAL_SURVEY_IDPS = "assets/last_survey_idps.xlsx"
     LINK_EXT_CBR = "http://www.cbr.ru/Collection/Collection/File/40867/full_032022.xlsx"
     LINK_LOCAL_CBR = "assets/full_032022.xlsx"
+    LINK_LOCAL_INVESTING_DATA = "assets/investing_data.xlsx"
     BONDS = ['Russia']
     COMMODITIES = ['Gold', 'Brent Oil', 'Natural Gas', 'London Wheat', 'Nickel', 'Copper', 'London Sugar']
     FXS = ['EUR/RUB', 'EUR/UAH', 'EUR/USD', "USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"]
@@ -60,7 +61,8 @@ def main():
         bench_bond = "Germany",
         market = "United Kingdom",
         start_date = START_DATE, 
-        to_date = DATE_NOW)
+        to_date = DATE_NOW,
+        link_local=LINK_LOCAL_INVESTING_DATA)
     logging.info("Investing data pulled")
 
     # FIGURES

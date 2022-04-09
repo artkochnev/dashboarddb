@@ -86,21 +86,28 @@ def get_data(bonds = list,
             bench_bond = "Germany",
             market = "United Kingdom",
             start_date = date, 
-            to_date = date):
+            to_date = date,
+            link_local = str):
     
     df = pd.DataFrame()    
-        
-    for bond in bonds:
-        df = df.append(get_bond(bond, tenor=tenor_bonds, start_date=start_date, to_date=to_date))
+    try:
+        for bond in bonds:
+            df = df.append(get_bond(bond, tenor=tenor_bonds, start_date=start_date, to_date=to_date))
 
-    for fx in fxs:
-        df = df.append(get_fx(fx, start_date=start_date, to_date=to_date))
+        for fx in fxs:
+            df = df.append(get_fx(fx, start_date=start_date, to_date=to_date))
 
-    for commodity in commodities:
-        df = df.append(get_commodity(commodity, start_date=start_date, to_date=to_date, market=market))
+        for commodity in commodities:
+            df = df.append(get_commodity(commodity, start_date=start_date, to_date=to_date, market=market))
 
-    for spread in spreads:
-        df = df.append(get_spread(country_bond=spread, bench_bond=bench_bond, tenor = tenor_spreads, start_date=start_date, to_date=to_date))
+        for spread in spreads:
+            df = df.append(get_spread(country_bond=spread, bench_bond=bench_bond, tenor = tenor_spreads, start_date=start_date, to_date=to_date))
+        df.to_excel(link_local)
+    except Exception as e:
+        logging.warning('Did not retrieve Investing.com data', exc_info=True)
+        df = pd.read_excel(link_local, index_col='Date')
+    finally:
+        return df
 
     return df
 
