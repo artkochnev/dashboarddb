@@ -61,8 +61,7 @@ def main():
         bench_bond = "Germany",
         market = "United Kingdom",
         start_date = START_DATE, 
-        to_date = DATE_NOW,
-        link_local=LINK_LOCAL_INVESTING_DATA)
+        to_date = DATE_NOW)
     logging.info("Investing data pulled")
 
     # FIGURES
@@ -88,7 +87,7 @@ def main():
     #map_reg_idps = fp.map_reg_idps(df_unhcr_reg_idps)
 
     # FINAL REPORT
-    st.title('The War that Shook the World: Costs and Consequences of Russian Invasion in Ukraine')
+    st.title('The War that Shook the World: Costs and Consequences of Russian Invasion of Ukraine')
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary'))
     st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
     cmet11, cmet12, cmet13, cmet14 = st.columns(4)
