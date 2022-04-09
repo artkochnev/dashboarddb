@@ -40,12 +40,9 @@ def get_fx(fx, start_date=date, to_date=date, link_local = str):
                                                     from_date=start_date, 
                                                     to_date=to_date)
         df = strip_ipy_df(df, fx)
-    except Exception as e:
-        logging.warning("Unable to retrieve the currency pair {fx}", exc_info=True)
-        df = pd.read_excel(link_local,index_col='Date')
-        df = df.loc[df['instrument']==fx]            
-    finally:
         return df
+    except Exception as e:
+        logging.warning("Unable to retrieve the currency pair {fx}", exc_info=True)            
 
 def get_commodity(commodity, start_date=date, to_date=date, market='United Kingdom', link_local = str):
     try:
@@ -54,12 +51,9 @@ def get_commodity(commodity, start_date=date, to_date=date, market='United Kingd
                                                             to_date=to_date,
                                                             country=market)
         df = strip_ipy_df(df, commodity)
+        return df
     except Exception as e:
         logging.warning("Unable to retrieve prices for commodity {commodity}", exc_info=True)
-        df = pd.read_excel(link_local,index_col='Date')
-        df = df.loc[df['instrument']==commodity]
-    finally:
-        return df
 
 def get_bond(country=str, tenor = 10, start_date=date, to_date=date, link_local = str):
     try:
@@ -68,27 +62,19 @@ def get_bond(country=str, tenor = 10, start_date=date, to_date=date, link_local 
                                                 from_date=start_date,
                                                 to_date=to_date)
         df = strip_ipy_df(df, country)
+        return df
     except Exception as e:
         logging.warning("Unable to retrieve bonds for country {country}", exc_info=True)
-        df = pd.read_excel(link_local,index_col='Date')
-        df = df.loc[df['instrument']==country]
-    finally:
-        return df
 
-def get_spread(country_bond = str, bench_bond = "Germany", start_date=date, to_date=date, tenor = 10, link_local=str):
+
+def get_spread(country_bond = str, bench_bond = "Germany", start_date=date, to_date=date, tenor = 10):
+    df_country_bond = get_bond(country=country_bond, tenor = tenor, start_date=start_date, to_date=to_date)
+    df_bench_bond = get_bond(country=bench_bond, tenor = tenor, start_date=start_date, to_date=to_date)
     spread_name = str(country_bond) + " vs " + str(bench_bond) + ": " + str(tenor) + "Y"
-    try:
-        df_country_bond = get_bond(country=country_bond, tenor = tenor, start_date=start_date, to_date=to_date)
-        df_bench_bond = get_bond(country=bench_bond, tenor = tenor, start_date=start_date, to_date=to_date)
-        df = pd.merge(df_country_bond, df_bench_bond, left_index=True, right_index=True)
-        df['Close'] = df['Close_x'] - df['Close_y']
-        df = strip_ipy_df(df, spread_name)
-    except Exception as e:
-        logging.warning('Cannot generate spreads from Investing.com', exc_info=True)
-        df = pd.read_excel(link_local,index_col='Date')
-        df = df.loc[df['instrument']==spread_name]
-    finally:
-        return df
+    df = pd.merge(df_country_bond, df_bench_bond, left_index=True, right_index=True)
+    df['Close'] = df['Close_x'] - df['Close_y']
+    df = strip_ipy_df(df, spread_name)
+    return df
 
 @st.cache
 def get_data(bonds = list, 
@@ -106,17 +92,16 @@ def get_data(bonds = list,
     df = pd.DataFrame()    
     try:
         for bond in bonds:
-            df = df.append(get_bond(bond, tenor=tenor_bonds, start_date=start_date, to_date=to_date, link_local=link_local))
+            df = df.append(get_bond(bond, tenor=tenor_bonds, start_date=start_date, to_date=to_date))
 
         for fx in fxs:
-            df = df.append(get_fx(fx, start_date=start_date, to_date=to_date, link_local=link_local))
+            df = df.append(get_fx(fx, start_date=start_date, to_date=to_date))
 
         for commodity in commodities:
-            df = df.append(get_commodity(commodity, start_date=start_date, to_date=to_date, market=market, link_local=link_local))
+            df = df.append(get_commodity(commodity, start_date=start_date, to_date=to_date, market=market))
 
         for spread in spreads:
-            df = df.append(get_spread(country_bond=spread, bench_bond=bench_bond, tenor = tenor_spreads, start_date=start_date, to_date=to_date, link_local=link_local))
-        
+            df = df.append(get_spread(country_bond=spread, bench_bond=bench_bond, tenor = tenor_spreads, start_date=start_date, to_date=to_date))
         df.to_excel(link_local)
     except Exception as e:
         logging.warning('Did not retrieve Investing.com data', exc_info=True)
