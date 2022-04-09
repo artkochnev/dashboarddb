@@ -207,10 +207,14 @@ def get_casualties(link=str, local_link=str):
         logging.warning("Unable to retrieve UNHCR data on casualties from {link}", exc_info=True)
         df = pd.read_excel(local_link)
     finally:
+        for i in df.columns:
+            print(i)
         num_columns = ['Date', 
+                    'Refugees(UNHCR)',
+                    'IDPs',
                     'Civilian casualities(OHCHR) - Killed', 
-                    'Civilian casualities(OHCHR) - Injured', 
-                    'Refugees(UNHCR)', 'Attacks on Education Facilities', 
+                    'Civilian casualities(OHCHR) - Injured',  
+                    'Attacks on Education Facilities', 
                     'Attacks on Health Care']
         df = df[num_columns]
         df = df.fillna(method='bfill', axis=0)
@@ -225,16 +229,18 @@ def get_casualties(link=str, local_link=str):
         last_injured = df['Civilian casualities(OHCHR) - Injured'][n]
         last_refugees = df['Refugees(UNHCR)'][n] 
         last_attacks_education = df['Attacks on Education Facilities'][n]
-        last_attacks_healthcare = df['Attacks on Health Care'][n]  
+        last_attacks_healthcare = df['Attacks on Health Care'][n]
+        last_idps = df['IDPs'][n]  
         delta_killed = df['Civilian casualities(OHCHR) - Killed'][n] - df['Civilian casualities(OHCHR) - Killed'][n-1]
         delta_injured = df['Civilian casualities(OHCHR) - Injured'][n] - df['Civilian casualities(OHCHR) - Injured'][n-1]
         delta_refugees = round((df['Refugees(UNHCR)'][n] - df['Refugees(UNHCR)'][n-2])/10**6,1)
         delta_attacks_education = int(df['Attacks on Education Facilities'][n]) - int(df['Attacks on Education Facilities'][n-1])
         delta_attacks_healthcare = int(df['Attacks on Health Care'][n]) - int(df['Attacks on Health Care'][n-1])
-        output = {'df': df, 
+        output = {'data': df, 
                 "Injured": int(last_injured), 
                 'Killed': int(last_killed), 
                 'Refugees': int(last_refugees),
+                'IDPs': int(last_idps),
                 'Attacks Schools': int(last_attacks_education),
                 'Attacks Healthcare': int(last_attacks_healthcare), 
                 'Delta injured': int(delta_injured), 

@@ -27,7 +27,7 @@ def main():
     LINK_EXT_CASUALTIES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQIdedbZz0ehRC0b4fsWiP14R7MdtU1mpmwAkuXUPElSah2AWCURKGALFDuHjvyJUL8vzZAt3R1B5qg/pub?output=csv"
     LINK_LOCAL_CASUALTIES = "assets/last_casualties.xlsx"
     LINK_EXT_REG_IDPS = "https://data.humdata.org/dataset/697c4fb9-1b76-4a66-808a-9a8fb5ffff1a/resource/013ffdf6-1b14-4a25-a194-4acf82251c75/download/idp_estimation_08_03_2022-unhcr-protection-cluster_.xlsx"
-    LINK_EXT_SURVEY_IDPS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFH9njhmY7yy9LBpRdlvbR6IZ3QdcV43zdC619FXgf7MSzb15ZwX4lJFIznvRqnvIAOTn1GRWZyjYz/pub?output=xlsx"
+    LINK_EXT_SURVEY_IDPS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRZLuDJYqm22MRR7Njef34Nit6EX7CdYKL5afGM6jgMmBSTrNA5wW-SNxFpGnjE5OZys09ejB5r_1j0/pub?output=xlsx"
     LINK_LOCAL_REG_IDPS = "assets/last_reg_idps.xlsx"
     LINK_LOCAL_SURVEY_IDPS = "assets/last_survey_idps.xlsx"
     LINK_EXT_CBR = "http://www.cbr.ru/Collection/Collection/File/40867/full_032022.xlsx"
@@ -46,8 +46,8 @@ def main():
     logging.info("UNHCR refugee data pulled")
     df_unhcr_casualties = dp.get_casualties(LINK_EXT_CASUALTIES, LINK_LOCAL_CASUALTIES)
     logging.info("UNHCR casualties data pulled")
-    df_unhcr_reg_idps = dp.get_reg_idps(LINK_EXT_REG_IDPS, LINK_LOCAL_REG_IDPS)
-    logging.info("UNHCR registered idps data pulled")
+    #df_unhcr_reg_idps = dp.get_reg_idps(LINK_EXT_REG_IDPS, LINK_LOCAL_REG_IDPS)
+    #logging.info("UNHCR registered idps data pulled")
     df_unhcr_survey_idps = dp.get_survey_idps(LINK_EXT_SURVEY_IDPS, LINK_LOCAL_SURVEY_IDPS)
     logging.info("Survey idps data pulled")
     df_investing_data = dp.get_data(
@@ -64,12 +64,15 @@ def main():
     logging.info("Investing data pulled")
 
     # FIGURES
-    fig_cbr_gdp = fp.figure_cbr_forecast(df_cbr_fcast, 'Year', "GDP (%, YoY)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
-    fig_cbr_fx = fp.figure_cbr_forecast(df_cbr_fcast, 'Year', "USD / RUB rate (RUB per USD, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
-    fig_cbr_cpi = fp.figure_cbr_forecast(df_cbr_fcast, 'Year', "CPI (in% Dec to Dec of the previous year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
-    fig_cbr_krt = fp.figure_cbr_forecast(df_cbr_fcast, 'Year', "Key rate (% per annum, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
-    fig_refugees = fp.figure_unhcr_refugees(df_unhcr_refugees)
-    fig_survey_idps = fp.figure_survey_idps(df_unhcr_survey_idps)
+    fig_unhcr_casualties = fp.fig_unhcr_casualties(df_unhcr_casualties, key='Civilian casualities(OHCHR) - Killed', height = 400, width = 400)
+    #fig_unhcr_injured = fp.fig_unhcr_casualties(df_unhcr_casualties, key='Civilian casualities(OHCHR) - Injured', height = 300, width = 300)
+    fig_unhcr_refugees = fp.fig_unhcr_casualties(df_unhcr_casualties, key='Refugees(UNHCR)', height = 400, width = 400)
+    fig_cbr_gdp = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "GDP (%, YoY)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+    fig_cbr_fx = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "USD / RUB rate (RUB per USD, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+    fig_cbr_cpi = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "CPI (in% Dec to Dec of the previous year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+    fig_cbr_krt = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "Key rate (% per annum, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+    fig_refugees = fp.fig_unhcr_refugees(df_unhcr_refugees)
+    fig_survey_idps = fp.fig_survey_idps(df_unhcr_survey_idps)
     fig_fts_needs = fp.fig_fts_needs(df_fts_needs)
     fig_brent_oil = fp.fig_investing_data(df_investing_data,'Brent Oil', width=400, height=400, bench_date=CUT_OFF_DATE)
     fig_natural_gas = fp.fig_investing_data(df_investing_data,'Natural Gas', width=400, height=400, bench_date=CUT_OFF_DATE)
@@ -78,7 +81,7 @@ def main():
     fig_brent_oil = fp.fig_investing_data(df_investing_data,'Brent Oil', width=400, height=400, bench_date=CUT_OFF_DATE)
     fig_london_wheat = fp.fig_investing_data(df_investing_data,'London Wheat', width=400, height=400, bench_date=CUT_OFF_DATE)
     fig_london_sugar = fp.fig_investing_data(df_investing_data,'London Sugar', width=400, height=400, bench_date=CUT_OFF_DATE)
-    map_reg_idps = fp.map_reg_idps(df_unhcr_reg_idps)
+    #map_reg_idps = fp.map_reg_idps(df_unhcr_reg_idps)
 
     # FINAL REPORT
     st.title('The War that Shook the World: Costs and Consequences of Russian Invasion in Ukraine')
@@ -87,20 +90,24 @@ def main():
     cmet11, cmet12, cmet13, cmet14 = st.columns(4)
     cmet21, cmet22, cmet23, cmet24 = st.columns(4)
     cmet11.metric("Refugees, mn people", round(df_unhcr_casualties['Refugees']/10**6,1))
-    cmet21.metric("IDPs, mn people", round(df_unhcr_survey_idps['total']/10**6,1))
+    cmet21.metric("IDPs, mn people", round(df_unhcr_casualties['IDPs']/10**6,1))
     cmet12.metric("Civilians, fatalities", df_unhcr_casualties['Killed'], df_unhcr_casualties['Delta killed'], delta_color='inverse')
     cmet22.metric("Civilians, injuries", df_unhcr_casualties['Injured'], df_unhcr_casualties['Delta injured'], delta_color='inverse')
     cmet13.metric("Total needs, $ BN", df_fts_needs['Total'])
     cmet23.metric("Funded needs $ BN", df_fts_needs['Funded'])
     cmet14.metric("Education facil. damaged", df_unhcr_casualties['Attacks Schools'], df_unhcr_casualties['Delta attacks schools'], delta_color='inverse')
     cmet24.metric("Healthcare facil. damaged", df_unhcr_casualties['Attacks Healthcare'], df_unhcr_casualties['Delta attacks healthcare'], delta_color='inverse')
+    intro_fig1, intro_fig2 = st.columns(2)
+    fp.plot_figure(intro_fig1.plotly_chart(fig_unhcr_casualties, height = 400, width = 400))
+    #fp.plot_figure(intro_fig3.plotly_chart(fig_unhcr_injured, height = 300, width = 300))
+    fp.plot_figure(intro_fig2.plotly_chart(fig_unhcr_refugees, height = 400, width = 400))
     st.markdown('---')
     st.header('Damage to Ukraine')
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='key_damage'))
     cfig01, cfig02 = st.columns(2)
     fp.plot_figure(cfig01.plotly_chart(fig_refugees))
     fp.plot_figure(cfig02.plotly_chart(fig_survey_idps))
-    fp.plot_figure(st.pydeck_chart(map_reg_idps))
+    #fp.plot_figure(st.pydeck_chart(map_reg_idps))
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='ukraine_costs'))
     fp.plot_figure(st.plotly_chart(fig_fts_needs))
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='ukraine_macro'))

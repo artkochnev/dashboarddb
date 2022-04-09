@@ -8,6 +8,33 @@ import pydeck as pdk
 import logging
 import data_pull as dp
 
+def fig_unhcr_casualties(df, key = str, data_key = 'data', date_key = 'Date', source = 'UNHCR', width = 0, height = 0):
+    df = df[data_key]
+    ymin = 0
+    ymax = df[key].max() + df[key].std()
+    #fig = px.area(df, y = key)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df[date_key], y=df[key], fill = 'tozeroy', mode='none'))
+    #fig.add_trace(go.Scatter(x=df.index, y=df[key],  fill = 'tonexty', mode='none'))
+
+    fig = fig.update_layout(
+        title = f"{key}<br><sup>Source: {source}</sup>",
+        yaxis_range = [ymin, ymax])
+
+    if width > 0 & height > 0:
+        fig = fig.update_layout(
+            width = width,
+            height = height)
+    elif width > 0 & height == 0:
+        fig = fig.update_layout(
+            width = width)
+    elif width == 0 & height > 0:
+        fig = fig.update_layout(
+            height = height)
+        
+    return fig
+
+
 def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com', width = 0, height = 0, bench_date = date, impact_date = "2022-02-24"):
     df = dp.get_key(df, key=key, bench_date=bench_date)[data_key]
     ymin = df[key].min() - df[key].std()
@@ -82,7 +109,7 @@ def fig_investing_data_multi(df, keys = list, ref_date = '2021-12-01', source = 
     return fig
 
 # Graphs for CBR forecasts
-def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter = str, lbound_filter = str, median_filter = str, filter_var = 'Stat', width = 0, height = 0):
+def fig_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter = str, lbound_filter = str, median_filter = str, filter_var = 'Stat', width = 0, height = 0):
     df = df_data
 
     if width > 0 & height > 0:
@@ -158,7 +185,7 @@ def figure_cbr_forecast(df_data, date_var = str, plot_var = str, ubound_filter =
     fig = fig.update_traces(mode='lines')
     return fig
 
-def figure_unhcr_refugees(df):
+def fig_unhcr_refugees(df):
     df_unhcr = df['data']
     total_refugees = df['total']
     total_refugees = round(total_refugees/10**6, 2)
@@ -182,7 +209,7 @@ def figure_unhcr_refugees(df):
     fig.update_traces(textangle=0, textposition="outside", cliponaxis=False)
     return fig
 
-def figure_survey_idps(df):
+def fig_survey_idps(df):
     df_idps_reg = df['data']
     idps_total = df['total']/10**6
     idps_total = round(idps_total, 2)
