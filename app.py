@@ -32,7 +32,7 @@ def main():
     LINK_LOCAL_SURVEY_IDPS = "assets/last_survey_idps.xlsx"
     LINK_EXT_CBR = "http://www.cbr.ru/Collection/Collection/File/40867/full_032022.xlsx"
     LINK_LOCAL_CBR = "assets/full_032022.xlsx"
-    LINK_LOCAL_INVESTING_DATA = "assets/investing_data.xlsx"
+    LINK_LOCAL_INVESTING_DATA = "assets/last_investing_data.xlsx"
     BONDS = ['Russia']
     COMMODITIES = ['Gold', 'Brent Oil', 'Natural Gas', 'London Wheat', 'Nickel', 'Copper', 'London Sugar']
     FXS = ['EUR/RUB', 'EUR/UAH', 'EUR/USD', "USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"]
@@ -73,6 +73,8 @@ def main():
     fig_cbr_fx = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "USD / RUB rate (RUB per USD, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
     fig_cbr_cpi = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "CPI (in% Dec to Dec of the previous year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
     fig_cbr_krt = fp.fig_cbr_forecast(df_cbr_fcast, 'Year', "Key rate (% per annum, average for the year)", "90th percentile", "10th percentile", "Median", height = 200, width = 400)
+    fig_fx_rub = fp.fig_investing_data(df_investing_data,'EUR/RUB', width=400, height=400, bench_date=CUT_OFF_DATE)
+    fig_spread_ru = fp.fig_investing_data(df_investing_data,'Russia vs Germany: 10Y', width=400, height=400, bench_date=CUT_OFF_DATE)
     fig_refugees = fp.fig_unhcr_refugees(df_unhcr_refugees)
     fig_survey_idps = fp.fig_survey_idps(df_unhcr_survey_idps)
     fig_fts_needs = fp.fig_fts_needs(df_fts_needs)
@@ -117,12 +119,16 @@ def main():
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='russia_economy'))
     st.markdown("**Forecasts of the Key Macro Indicators By Professional Forecasters**")
     st.markdown("*Source*: Central Bank of Russia")
-    cfig11, cfig12 = st.columns(2)
-    fp.plot_figure(cfig11.plotly_chart(fig_cbr_gdp))
-    fp.plot_figure(cfig12.plotly_chart(fig_cbr_cpi))    
-    cfig21, cfig22 = st.columns(2)
-    fp.plot_figure(cfig21.plotly_chart(fig_cbr_fx))
-    fp.plot_figure(cfig22.plotly_chart(fig_cbr_krt))
+    cfig_ru_11, cfig_ru_12 = st.columns(2)
+    fp.plot_figure(cfig_ru_11.plotly_chart(fig_cbr_gdp))
+    fp.plot_figure(cfig_ru_12.plotly_chart(fig_cbr_cpi))    
+    cfig_ru_21, cfig_ru_22 = st.columns(2)
+    fp.plot_figure(cfig_ru_21.plotly_chart(fig_cbr_fx))
+    fp.plot_figure(cfig_ru_22.plotly_chart(fig_cbr_krt))
+    st.markdown("**Impact on the Russian Financial Market**")
+    cfig_ru_31, cfig_ru_32 = st.columns(2)
+    fp.plot_figure(cfig_ru_31.plotly_chart(fig_fx_rub))
+    fp.plot_figure(cfig_ru_32.plotly_chart(fig_spread_ru))
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='russia_policies'))
     fp.plot_figure(components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrolling=True))
     fp.plot_figure(components.iframe("https://datawrapper.dwcdn.net/ZVnMA/4/", height=800, scrolling=True))
