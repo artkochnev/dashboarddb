@@ -88,7 +88,7 @@ def main():
     #map_reg_idps = fp.map_reg_idps(df_unhcr_reg_idps)
 
     # FINAL REPORT
-    st.title('The War that Shook the World: Costs and Consequences of the Russian Invasion of Ukraine')
+    st.title('Tracking the Costs and Consequences of the Russian Invasion of Ukraine')
     st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary'))
     st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
     cmet11, cmet12, cmet13, cmet14 = st.columns(4)
