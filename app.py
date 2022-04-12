@@ -89,10 +89,11 @@ def main():
 
     # FINAL REPORT
     st.title('Tracking the Costs and Consequences of the Russian Invasion of Ukraine')
-    st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary'))
     st.subheader("Humanitarian needs in Ukraine: Latest Estimation")
+    st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary_short_effects'))
     cmet11, cmet12, cmet13, cmet14 = st.columns(4)
     cmet21, cmet22, cmet23, cmet24 = st.columns(4)
+    st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary_long_effects'))
     cmet11.metric("Refugees, mn people", round(df_unhcr_casualties['Refugees']/10**6,1))
     cmet21.metric("IDPs, mn people", round(df_unhcr_casualties['IDPs']/10**6,1))
     cmet12.metric("Civilians, fatalities", df_unhcr_casualties['Killed'], df_unhcr_casualties['Delta killed'], delta_color='inverse')
