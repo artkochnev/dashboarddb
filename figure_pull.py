@@ -35,7 +35,7 @@ def fig_unhcr_casualties(df, key = str, data_key = 'data', date_key = 'Date', so
     return fig
 
 
-def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com', width = 0, height = 0, bench_date = date, impact_date = "2022-02-24"):
+def fig_yahoo_data(df, key = str, data_key = 'data', source = 'Yahoo Finance', width = 0, height = 0, bench_date = date, impact_date = "2022-02-24"):
     df = dp.get_key(df, key=key, bench_date=bench_date)[data_key]
     ymin = df[key].min() - df[key].std()
     ymax = df[key].max() + df[key].std()
@@ -62,7 +62,7 @@ def fig_investing_data(df, key = str, data_key = 'data', source = 'Investing.com
         
     return fig
 
-def fig_investing_data_multi(df, keys = list, ref_date = '2021-12-01', source = 'Investing.com', width = 0, height = 0, title = str):
+def fig_yahoo_data_multi(df, keys = list, ref_date = '2021-12-01', source = 'Yahoo Finance', width = 0, height = 0, title = str):
     df_plot = df[df['instrument'].isin(keys)]
     df_ref = df_plot.loc[df_plot.index == ref_date]
     df_plot['Date'] = df_plot.index
@@ -104,7 +104,7 @@ def fig_investing_data_multi(df, keys = list, ref_date = '2021-12-01', source = 
     fig = fig.update_layout(title = f"{title}<br><sup>Source: {source}</sup>", 
                             yaxis_title='Value-to-Date to Value as of December 1st')
 
-    fig.update_layout(showlegend = False)
+    fig.update_layout(showlegend = True)
         
     return fig
 

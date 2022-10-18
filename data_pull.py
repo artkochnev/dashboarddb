@@ -1,10 +1,7 @@
 from datetime import date
 import streamlit as st
 import pandas as pd
-import investpy as ipy
-import plotly.express as px
-import plotly.graph_objects as go
-import pydeck as pdk
+import yfinance as yf
 import logging
 import re
 
@@ -27,84 +24,35 @@ def get_text(link_text=str, label_col = 'label', paragraph_col = 'paragraph', la
 
 
 # FUNCTIONS
-def strip_ipy_df(df = pd.DataFrame(), instrument = str, rename = False):
-    df = df[['Close']]
+def strip_yf_df(df = pd.DataFrame(), instrument = str, rename = False):
+    df = df[['Adj Close']]
     df['instrument'] = instrument
     if rename == True:
-        df = df.rename(columns={"Close": instrument})
+        df = df.rename(columns={"Adj Close": instrument})
     return df
 
-def get_fx(fx, start_date=date, to_date=date, link_local = str):
+def get_instrument(instrument=str, start_date=date, to_date=date, link_local = str):
     try:
-        df = ipy.get_currency_cross_historical_data(currency_cross=fx, 
-                                                    from_date=start_date, 
-                                                    to_date=to_date)
-        df = strip_ipy_df(df, fx)
+        df = yf.download(instrument, start=start_date, end=to_date)
+        df.index = pd.to_datetime(df.index)
+        df = strip_yf_df(df, instrument)
         return df
     except Exception as e:
         logging.warning("Unable to retrieve the currency pair {fx}", exc_info=True)            
 
-def get_commodity(commodity, start_date=date, to_date=date, market='United Kingdom', link_local = str):
-    try:
-        df = ipy.commodities.get_commodity_historical_data(commodity=commodity, 
-                                                            from_date=start_date, 
-                                                            to_date=to_date,
-                                                            country=market)
-        df = strip_ipy_df(df, commodity)
-        return df
-    except Exception as e:
-        logging.warning("Unable to retrieve prices for commodity {commodity}", exc_info=True)
-
-def get_bond(country=str, tenor = 10, start_date=date, to_date=date, link_local = str):
-    try:
-        country_bond_name = str(country) + " " + str(tenor) + "Y"
-        df = ipy.bonds.get_bond_historical_data(bond=country_bond_name,
-                                                from_date=start_date,
-                                                to_date=to_date)
-        df = strip_ipy_df(df, country)
-        return df
-    except Exception as e:
-        logging.warning("Unable to retrieve bonds for country {country}", exc_info=True)
-
-
-def get_spread(country_bond = str, bench_bond = "Germany", start_date=date, to_date=date, tenor = 10):
-    df_country_bond = get_bond(country=country_bond, tenor = tenor, start_date=start_date, to_date=to_date)
-    df_bench_bond = get_bond(country=bench_bond, tenor = tenor, start_date=start_date, to_date=to_date)
-    spread_name = str(country_bond) + " vs " + str(bench_bond) + ": " + str(tenor) + "Y"
-    df = pd.merge(df_country_bond, df_bench_bond, left_index=True, right_index=True)
-    df['Close'] = df['Close_x'] - df['Close_y']
-    df = strip_ipy_df(df, spread_name)
-    return df
-
 @st.cache
-def get_data(bonds = list, 
-            fxs = list, 
-            commodities = list, 
-            spreads = list, 
-            tenor_bonds = 10, 
-            tenor_spreads = 10, 
-            bench_bond = "Germany",
-            market = "United Kingdom",
+def get_data(instruments = list, 
             start_date = date, 
             to_date = date,
             link_local = str):
     
     df = pd.DataFrame()    
     try:
-        for bond in bonds:
-            df = df.append(get_bond(bond, tenor=tenor_bonds, start_date=start_date, to_date=to_date))
-
-        for fx in fxs:
-            df = df.append(get_fx(fx, start_date=start_date, to_date=to_date))
-
-        for commodity in commodities:
-            df = df.append(get_commodity(commodity, start_date=start_date, to_date=to_date, market=market))
-
-        for spread in spreads:
-            df = df.append(get_spread(country_bond=spread, bench_bond=bench_bond, tenor = tenor_spreads, start_date=start_date, to_date=to_date))
+        for instrument in instruments:
+            df = df.append(get_instrument(instrument, start_date=start_date, to_date=to_date))
         df.to_excel(link_local)
     except Exception as e:
-        logging.warning('Did not retrieve Investing.com data', exc_info=True)
+        logging.warning('Did not retrieve Yahoo data', exc_info=True)
         df = pd.read_excel(link_local, index_col='Date')
     finally:
         return df
