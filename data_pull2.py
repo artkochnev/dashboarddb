@@ -85,17 +85,24 @@ def get_ua_data(link_data_sources, target_folder):
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', 150)
 
+def log_data_transform():
+    now = datetime.now()
+    current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    logging.info(f'Grain data stored: {current_time}')
+
 # --- GRAIN FUNCTIONS ---
-def get_grain_data(source):
-    df = pd.read_csv('assets/grain_destinations.csv', thousands=r',')
+def transform_grain_data(source, output):
+    df = pd.read_csv(source, thousands=r',')
     df['Income group'] = df['Income group'].fillna('mixed')
     df = df.groupby(['Country', 'Income group']).sum('total metric tons')
     df = df.sort_values(by=['total metric tons'], ascending=False)
     df = df.reset_index()
     df.columns = ['Country', 'Income group', 'Tons received']
-    return df
+    df.to_csv(output)
+    log_data_transform()
 
-def plot_grain(df):
+def plot_grain(source):
+    df = pd.read_csv(source)
     fig = px.bar(df, x = 'Tons received', y='Income group', color = 'Country', orientation='h',
         hover_data={'Tons received': ':.0f'},
         color_discrete_sequence=px.colors.qualitative.Pastel
@@ -104,10 +111,33 @@ def plot_grain(df):
     return fig
 
 # --- FUNCTIONAL TEST ---
+# transform_grain_data('assets/grain_destinations.csv', 'tf_grain.csv')
+# fig_grain = plot_grain(tf_grain.csv)
+# fig_grain.show()
 
-df_grain = get_grain_data('assets/grain_destinations.csv')
-fig_grain = plot_grain(df_grain)
-fig_grain.show()
+def read_data(source, source_type):
+    df = pd.DataFrame()
+    if source_type == 'csv':
+        df = pd.read_csv(source)
+    elif source_type == 'xlsx':
+        df = pd.read_excel(source)
+    else:
+        pass
+    print(df)
+    return df
+
+def transform_hum(source, output):
+    df = read_data(source, 'csv')
+    df = df[df.iloc[:, 0] != '#population+total']
+    df = df[['People Affected(Flash Appeal)', 'IDPs', 'Refugees(UNHCR)', 'Civilian casualities(OHCHR) - Killed', 'Civilian casualities(OHCHR) - Injured', 'Date']]
+    df.columns = ['People affected', 'Internally Displaced', 'Refugees', 'Civilian deaths, confirmed', 'Civilians injured, confirmed', 'Date']
+    df = df.fillna(method='ffill')
+    df.to_csv(output)
+    log_data_transform()
+
+def plot_refugees(source):
+    df = pd.read_csv(source)
+    fig = px.area(df, y = 'IDPs', )
 
 # Data retrieval test
 # Financial data
