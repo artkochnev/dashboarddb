@@ -25,7 +25,7 @@ currency_list = {
     'type': ['FX rate', 'FX rate']
 }
 
-# Yahoo Finance data
+# --- YAHOO FINANCE
 def get_yf_instrument(instrument, alias, type, start_date, end_date):
     try:
         df = yf.download(instrument, start=start_date, end=end_date)
@@ -51,6 +51,7 @@ def get_yf_data(currency_list, target):
         df = df.append(df_temp)   
     df.to_csv(target, index=False)
 
+# --- MANUAL DATA
 def get_ua_data(link_data_sources, target_folder):
     # Parse list of data sources
     df = pd.read_excel(link_data_sources)
@@ -160,20 +161,23 @@ def transform_reconstruction_regions(source, output='assets/tf_reconstruction_re
 def plot_damage(source):
     df = pd.read_csv(f'assets/{source}.csv')
     fig = px.treemap(df, path=[px.Constant("All"), 'Sector Type', 'Sector'], values='Damage',
-        color_discrete_sequence=px.colors.qualitative.Pastel)
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        title="Damage assessment as of August 2022")
     return fig
 
 def plot_needs(source):
     df = pd.read_csv(f'assets/{source}.csv')
     fig = px.treemap(df, path=[px.Constant("All"), 'Sector Type', 'Sector'], values='Needs',
-        color_discrete_sequence=px.colors.qualitative.Pastel)
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        title="Reconstruction needs as of August 2022")
     return fig
 
 def plot_regional_damage(source):
     df = pd.read_csv(f'assets/{source}')
     fig = px.bar(df, x = 'Damage', y='Oblast', orientation='h', color = 'Oblast type',
-        hover_data={'Damage': ':.1f'+'$'},
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        hover_data={'Damage': ':.1f'},
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        title="Damage by regions as of August 2022"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'})
     return fig
@@ -199,19 +203,107 @@ def transform_support_data(source, output='assets/tf_ukraine_support.csv'):
     df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
     df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
     df = df.groupby(['countries', 'Type of Aid General']).agg({'Value committed':'sum','Value delivered':'sum'})
+    df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
     df = df.reset_index()
     df.to_csv(output)
     log_data_transform()
 
-transform_support_data('src_ukraine_support.csv')
-read_data('tf_ukraine_support.csv', 'csv')
+def plot_support_committed(source):
+    df = pd.read_csv(f'assets/{source}')
+    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General', 'countries'], values='Value committed',
+                hover_data={'Value committed': ':.2f'},
+                color_discrete_sequence=px.colors.qualitative.Pastel,
+            )
+    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    return fig
+
+def plot_support_delivered(source):
+    df = pd.read_csv(f'assets/{source}')
+    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General', 'countries'], values='Value delievered',
+                hover_data={'Value delivered': ':.2f'},
+                color_discrete_sequence=px.colors.qualitative.Pastel,
+            )
+    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    return fig
+
+def plot_delivery_rate(source):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
+    df['Ratio: Delivered to committed'] = df['Value delivered'] / df['Value committed']
+    fig = px.bar(df, y="countries", 
+                    x="Value committed",
+                    color='Ratio: Delivered to committed', 
+                    orientation='h', 
+                    text_auto='.2s',
+                    hover_data={'Ratio: Delivered to committed': ':.1f'},
+                    color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    return fig
+
+# --- FISCAL AND FINANCIAL DATA
+def transform_fiscal_income(source, output='assets/tf_fiscal_income.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_fiscal_expenses(source, output='assets/tf_fiscal_expenses.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_fiscal_finance(source, output='assets/tf_fiscal_finance.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_cpi_headline(source, output='assets/tf_cpi_headline.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_international_reserves(source, output='assets/tf_international_reserves.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_bond_yields(source, output='assets/tf_bond_yields.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_policy_rate(source, output='assets/tf_policy_rate.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_interest_rates(source, output='assets/tf_interest_rates.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
+
+def transform_financial_soundness(source, output='assets/tf_financial_soundness.csv'):
+    df = pd.read_csv(f'assets/{source}')
+    df = df.reset_index()
+    df.to_csv(output)
+    log_data_transform()
 
 # --- FUNCTIONAL TEST ---
-# get_ua_data(link_data_sources, target_folder='assets')
+# Data retrieval
+get_ua_data(link_data_sources, target_folder='assets')
+
 # Data transform
 # transform_hum_data('src_hum_data.csv')
 # transform_grain_data('src_grain_destinations.csv')
 # transform_reconstruction_regions('src_reconstruction_regions.csv')
+# transform_support_data('src_ukraine_support.csv')
 
 # plot_refugees('tf_hum_data.csv').show()
 # plot_idps('tf_hum_data.csv').show()
@@ -219,9 +311,21 @@ read_data('tf_ukraine_support.csv', 'csv')
 # plot_casualties('tf_hum_data.csv').show()
 # plot_damage('src_reconstruction_sectors').show()
 # plot_needs('src_reconstruction_sectors').show()
-# plot_needs('src_reconstruction_sectors').show()
 # plot_regional_damage('tf_reconstruction_regions.csv').show()
+# plot_delivery_rate('tf_ukraine_support.csv').show()
 
 # Data retrieval test
 # Financial data
 # get_yf_data(currency_list, target)
+
+# ToDos
+# Refugee Plot: cut data before August (later correct for inconsistency)
+# IDP: OK, although bar chart might be more useful
+# Casualties: OK, might add a secondary with the Mariupol estimations
+# Civilians injured: as above, might add a correction for Mariupol
+# Damage: also good
+# Needs: very good
+# Regional damage good
+# Delivery rate: ratio delivered to committed: change to %
+# Add sources everywhere
+# Another idea: Commitment to GDP
